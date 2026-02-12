@@ -98,11 +98,18 @@ class Media_Maestro_Admin {
 
 		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/media-maestro-admin.js', array( 'jquery' ), $this->version, true );
 		
-        // Enqueue Media View script
-        if ( did_action( 'wp_enqueue_media' ) ) {
-            wp_enqueue_script( $this->plugin_name . '-media-view', plugin_dir_url( __FILE__ ) . 'js/media-maestro-media-view.js', array( 'media-views' ), $this->version, true );
-        }
 	}
+
+    /**
+     * Enqueue Media View assets.
+     */
+    public function enqueue_media_assets() {
+        wp_enqueue_script( $this->plugin_name . '-media-view', plugin_dir_url( __FILE__ ) . 'js/media-maestro-media-view.js', array( 'media-views' ), $this->version, true );
+        wp_localize_script( $this->plugin_name . '-media-view', 'mm_data', array(
+            'nonce'   => wp_create_nonce( 'wp_rest' ),
+            'api_url' => get_rest_url( null, 'mm/v1/jobs' ),
+        ) );
+    }
 
     /**
      * Print JS Templates.

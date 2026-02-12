@@ -145,7 +145,8 @@ class Media_Maestro_Core {
         add_action( 'admin_menu', array( $plugin_admin, 'add_plugin_admin_menu' ) );
         add_action( 'admin_init', array( $plugin_admin, 'register_settings' ) );
         add_action( 'add_meta_boxes', array( $plugin_admin, 'add_ai_metabox' ) );
-        add_action( 'admin_footer', array( $plugin_admin, 'print_media_templates' ) );
+        add_action( 'wp_enqueue_media', array( $plugin_admin, 'enqueue_media_assets' ) );
+        add_action( 'print_media_templates', array( $plugin_admin, 'print_media_templates' ) );
     }
 
     /**
