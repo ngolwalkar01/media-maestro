@@ -41,11 +41,13 @@ class Media_Maestro_Provider_Manager {
     private function __construct() {
         // Register default providers
         $this->register_provider( new Media_Maestro_Provider_Mock() );
+        $this->register_provider( new Media_Maestro_Provider_OpenAI() );
     }
 
     /**
      * Register a provider.
      *
+     * @param string $id Provider ID.
      * @param Media_Maestro_Provider_Interface $provider Provider instance.
      */
     public function register_provider( Media_Maestro_Provider_Interface $provider ) {
