@@ -142,10 +142,16 @@
                 priority: 200
             });
 
-            // Try appending manually if views.add doesn't auto-render
-            this.views.add('.compat-attachment-fields', sidebarView);
+            // Manual append to ensure visibility
+            var $compat = this.$('.compat-attachment-fields');
+            if ($compat.length) {
+                $compat.prepend(sidebarView.el);
+                console.log('Appended sidebar to .compat-attachment-fields');
+            } else {
+                this.$el.append(sidebarView.el);
+                console.log('Appended sidebar to main el');
+            }
 
-            // Force render just in case
             sidebarView.render();
         }
     });
