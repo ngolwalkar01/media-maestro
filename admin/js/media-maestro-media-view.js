@@ -4,7 +4,7 @@
  * Extends the WordPress Media Library modal to add AI Tools.
  */
 (function ($, _) {
-    console.log('Media Maestro Media View Loaded');
+    console.log('Media Maestro Media View Loaded (Fixed)');
 
     var media = wp.media;
 
@@ -12,11 +12,8 @@
         console.log('Media Maestro: mm_data missing in Media View');
         return;
     }
-    console.log('Media Maestro Media View Data:', mm_data);
+    console.log('Media Maestro Media View Data present for ID:', mm_data.attachment_id || 'dynamic');
 
-    /**
-     * View for the AI Tools Sidebar Section
-     */
     /**
      * View for the AI Tools Sidebar Section
      */
@@ -37,7 +34,6 @@
 
         prepare: function () {
             var data = this.model.toJSON();
-            // Add any dynamic data needed for the template
             return data;
         },
 
@@ -48,7 +44,6 @@
                 return this;
             }
             try {
-                // Basic render
                 this.$el.html(this.template(this.prepare()));
                 console.log('MediaMaestroSidebar rendered content');
             } catch (e) {
@@ -113,8 +108,8 @@
                 }).done(function (response) {
                     if (response.status === 'completed') {
                         $status.html('Done! <br>New image created.');
-                        // Refresh the library?
-                        // self.model.collection.props.set({ ignore: (+ new Date()) }); // force refresh trick?
+                        // Trigger a change to refresh
+                        self.model.fetch();
                     } else if (response.status === 'failed') {
                         $status.text('Failed: ' + response.error);
                     } else {
@@ -133,27 +128,25 @@
     media.view.Attachment.Details = originalAttachmentDetails.extend({
         initialize: function () {
             originalAttachmentDetails.prototype.initialize.apply(this, arguments);
-
-            // Create our sidebar view
             this.on('ready', this.renderMediaMaestro, this);
         },
 
         renderMediaMaestro: function () {
-            console.log('renderMediaMaestro called', this.model.get('type'));
-            // Check if it's an image
             if (this.model.get('type') !== 'image') {
                 return;
             }
 
-            // We want to append to the sidebar details
             var sidebarView = new media.view.MediaMaestroSidebar({
                 controller: this.controller,
                 model: this.model,
                 priority: 200
             });
 
+            // Try appending manually if views.add doesn't auto-render
             this.views.add('.compat-attachment-fields', sidebarView);
-            console.log('Sidebar view added');
+
+            // Force render just in case
+            sidebarView.render();
         }
     });
 
