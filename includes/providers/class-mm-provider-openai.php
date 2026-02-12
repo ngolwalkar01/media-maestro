@@ -51,34 +51,8 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
 
     /**
      * Remove Background.
-     * 
-     * Uses generic DALL-E 2/3 edit or similar if available, 
-     * BUT OpenAI doesn't have a direct "remove background" endpoint yet.
-     * Ideally we'd use a specific service like remove.bg or Stability.ai for this.
-     * 
-     * FOR MVP: We will use DALL-E 2 "Edit" endpoint to MASK the background if possible,
-     * or actually, let's switch this to use a standard "Edit" with a prompt "remove background"
-     * which might not work perfectly with DALL-E.
-     * 
-     * ALTERNATIVE: For "Remove Background", it's better to use something like Stability AI or remove.bg.
-     * However, since we promised OpenAI, we might need to use "Variations" or "Edits".
-     * 
-     * ACTUALLY: Let's implement generic "Edit" for now, mapped to "Style Transfer" 
-     * and keep "Remove Background" as a placeholder or mocked for OpenAI until we add a specific lib.
-     * 
-     * Wait, user expects background removal. 
-     * OpenAI DALL-E 2 can do edits with a mask. We don't have a mask.
-     * 
-     * Let's assume for this step we are just wiring up the API connection.
-     * I will implement `style_transfer` (Edit) first as it's supported.
-     * For `remove_background`, I will throw an error saying "Not supported by OpenAI DALL-E 2 directly without mask".
-     * OR better: We use `recraft.ai` or `remove.bg` for this specific feature later.
-     * 
-     * USE CASE: Many "AI" plugins use specific APIs for specific tasks.
-     * 
-     * Let's stick to the interface. I'll implement a basic `images/generations` call for "Style Transfer".
      */
-    public function remove_background( $source_path ) {
+    public function remove_background( $source_path, $options = array() ) {
         // OpenAI DALL-E does not support direct background removal without a mask.
         // Returning error for now, or we could fallback to a mock for demo.
         return new WP_Error( 'not_implemented', 'OpenAI DALL-E does not support direct background removal. Please use a different provider or upload a mask.' );
@@ -86,12 +60,8 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
 
     /**
      * Style Transfer / Edit.
-     * 
-     * Uses OpenAI `images/edits` or `images/generations`.
-     * Note: `images/edits` requires a mask. 
-     * `images/variations` takes an image and generates similar ones.
      */
-    public function style_transfer( $source_path, $params = array() ) {
+    public function style_transfer( $source_path, $prompt, $options = array() ) {
         if ( empty( $this->api_key ) ) {
             return new WP_Error( 'missing_api_key', 'OpenAI API Key is missing.' );
         }
@@ -100,6 +70,13 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
         // Or 'images/generations' if we just want new image.
         // Let's use 'images/variations' for now.
         $url = 'https://api.openai.com/v1/images/variations';
+
+        // NOTE: Variations does NOT take a prompt. It just takes an image.
+        // Edits take a prompt but require a mask.
+        // Generations take a prompt but no image.
+        // So stricly speaking, 'style_transfer' with OpenAI DALL-E 2 is tricky.
+        // We will use VARIATIONS and ignore the prompt for now, or use GENERATIONS and ignore the source image if the user wants.
+        // Let's stick to VARIATIONS for "image-to-image" style vibes.
 
         $args = array(
             'headers' => array(
@@ -132,6 +109,8 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
         ));
         
         $cfile = new CURLFile($source_path);
+        
+        // DALL-E 2 Variations: image, n, size, response_format, user
         $data = array('image' => $cfile, 'n' => 1, 'size' => '1024x1024');
         curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
         
