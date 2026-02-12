@@ -100,7 +100,8 @@ class Media_Maestro_Provider_Gemini implements Media_Maestro_Provider_Interface 
         }
 
         // Endpoint for Gemini 1.5 Flash (Text generation)
-        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' . $this->api_key;
+        // Using 'gemini-1.5-flash-latest' to ensure availability
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' . $this->api_key;
 
         // Prompt logic: "Create an SVG code for..."
         // This allows us to return a visual result using a text model.
