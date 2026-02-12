@@ -17,7 +17,10 @@
     /**
      * View for the AI Tools Sidebar Section
      */
-    media.view.MediaMaestroSidebar = media.view.PriorityList.extend({
+    /**
+     * View for the AI Tools Sidebar Section
+     */
+    media.view.MediaMaestroSidebar = media.View.extend({
         className: 'mm-sidebar-section',
         template: wp.template('mm-sidebar-template'),
 
@@ -28,7 +31,7 @@
 
         initialize: function (options) {
             console.log('MediaMaestroSidebar initialized');
-            media.view.PriorityList.prototype.initialize.apply(this, arguments);
+            media.View.prototype.initialize.apply(this, arguments);
             this.model.on('change', this.render, this);
         },
 
@@ -39,8 +42,18 @@
         },
 
         render: function () {
-            // Basic render
-            this.$el.html(this.template(this.prepare()));
+            console.log('MediaMaestroSidebar render called');
+            if (!this.template) {
+                console.error('Template mm-sidebar-template not found');
+                return this;
+            }
+            try {
+                // Basic render
+                this.$el.html(this.template(this.prepare()));
+                console.log('MediaMaestroSidebar rendered content');
+            } catch (e) {
+                console.error('Error rendering MediaMaestroSidebar:', e);
+            }
             return this;
         },
 
