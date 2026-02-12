@@ -159,10 +159,9 @@ class Media_Maestro_Admin {
      * Register settings.
      */
     public function register_settings() {
+        register_setting( $this->plugin_name, 'mm_provider' );
         register_setting( $this->plugin_name, 'mm_api_key' );
-        register_setting( 'media-maestro-admin', 'mm_provider' );
-        register_setting( 'media-maestro-admin', 'mm_api_key' );
-        register_setting( 'media-maestro-admin', 'mm_gemini_api_key' );
+        register_setting( $this->plugin_name, 'mm_gemini_api_key' );
         
         add_settings_section(
             'mm_general_section',
@@ -175,7 +174,7 @@ class Media_Maestro_Admin {
             'mm_provider',
             'Select AI Provider',
             array( $this, 'provider_callback' ),
-            'media-maestro-admin',
+            $this->plugin_name,
             'mm_general_section'
         );
 
@@ -183,7 +182,7 @@ class Media_Maestro_Admin {
             'mm_api_key',
             'OpenAI API Key',
             array( $this, 'api_key_callback' ),
-            'media-maestro-admin',
+            $this->plugin_name,
             'mm_general_section'
         );
 
@@ -191,7 +190,7 @@ class Media_Maestro_Admin {
             'mm_gemini_api_key',
             'Google Gemini API Key',
             array( $this, 'gemini_api_key_callback' ),
-            'media-maestro-admin',
+            $this->plugin_name,
             'mm_general_section'
         );
     }
