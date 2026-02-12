@@ -160,7 +160,9 @@ class Media_Maestro_Admin {
      */
     public function register_settings() {
         register_setting( $this->plugin_name, 'mm_api_key' );
-        register_setting( $this->plugin_name, 'mm_provider', array( 'default' => 'openai' ) );
+        register_setting( 'media-maestro-admin', 'mm_provider' );
+        register_setting( 'media-maestro-admin', 'mm_api_key' );
+        register_setting( 'media-maestro-admin', 'mm_gemini_api_key' );
         
         add_settings_section(
             'mm_general_section',
@@ -170,35 +172,52 @@ class Media_Maestro_Admin {
         );
 
         add_settings_field(
-            'mm_api_key',
-            'API Key',
-            array( $this, 'render_api_key_field' ),
-            $this->plugin_name,
+            'mm_provider',
+            'Select AI Provider',
+            array( $this, 'provider_callback' ),
+            'media-maestro-admin',
             'mm_general_section'
         );
 
         add_settings_field(
-            'mm_provider',
-            'AI Provider',
-            array( $this, 'render_provider_field' ),
-            $this->plugin_name,
+            'mm_api_key',
+            'OpenAI API Key',
+            array( $this, 'api_key_callback' ),
+            'media-maestro-admin',
+            'mm_general_section'
+        );
+
+        add_settings_field(
+            'mm_gemini_api_key',
+            'Google Gemini API Key',
+            array( $this, 'gemini_api_key_callback' ),
+            'media-maestro-admin',
             'mm_general_section'
         );
     }
 
-    public function render_api_key_field() {
+    public function api_key_callback() {
         $api_key = get_option( 'mm_api_key' );
-        echo '<input type="password" name="mm_api_key" value="' . esc_attr( $api_key ) . '" class="regular-text" />';
+        echo '<input type="password" name="mm_api_key" value="' . esc_attr( $api_key ) . '" class="regular-text">';
+        echo '<p class="description">Enter your OpenAI API Key here if selected.</p>';
     }
 
-    public function render_provider_field() {
-        $provider = get_option( 'mm_provider', 'openai' );
+    public function provider_callback() {
+        $provider = get_option( 'mm_provider', 'mock' );
         ?>
         <select name="mm_provider">
-            <option value="openai" <?php selected( $provider, 'openai' ); ?>>OpenAI</option>
-            <option value="mock" <?php selected( $provider, 'mock' ); ?>>Mock (Dev)</option>
+            <option value="mock" <?php selected( $provider, 'mock' ); ?>>Mock Provider (Dev)</option>
+            <option value="openai" <?php selected( $provider, 'openai' ); ?>>OpenAI (DALL-E)</option>
+            <option value="gemini" <?php selected( $provider, 'gemini' ); ?>>Google Gemini</option>
         </select>
+        <p class="description">Select which AI service to use.</p>
         <?php
+    }
+
+    public function gemini_api_key_callback() {
+        $api_key = get_option( 'mm_gemini_api_key' );
+        echo '<input type="password" name="mm_gemini_api_key" value="' . esc_attr( $api_key ) . '" class="regular-text">';
+        echo '<p class="description">Enter your Google Gemini API Key here if selected (via AI Studio).</p>';
     }
 
     /**

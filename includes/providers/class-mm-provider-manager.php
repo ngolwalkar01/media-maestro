@@ -42,6 +42,7 @@ class Media_Maestro_Provider_Manager {
         // Register default providers
         $this->register_provider( new Media_Maestro_Provider_Mock() );
         $this->register_provider( new Media_Maestro_Provider_OpenAI() );
+        $this->register_provider( new Media_Maestro_Provider_Gemini() );
     }
 
     /**
