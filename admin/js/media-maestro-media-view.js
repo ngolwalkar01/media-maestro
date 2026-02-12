@@ -61,7 +61,7 @@
         styleTransfer: function (e) {
             e.preventDefault();
             console.log('Style Transfer Clicked (Modal)');
-            this.startJob('style_transfer', { prompt: 'Oil painting' });
+            this.startJob('style_transfer', { prompt: 'A futuristic cyberpunk city' });
         },
 
         startJob: function (operation, params = {}) {
