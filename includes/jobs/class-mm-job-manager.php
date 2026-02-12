@@ -154,6 +154,7 @@ class Media_Maestro_Job_Manager {
             'status'    => get_post_meta( $post->ID, '_mm_status', true ),
             'operation' => get_post_meta( $post->ID, '_mm_operation', true ),
             'source_id' => get_post_meta( $post->ID, '_mm_source_id', true ),
+            'params'    => get_post_meta( $post->ID, '_mm_params', true ),
             'result'    => get_post_meta( $post->ID, '_mm_output_ids', true ), // Array of attachment IDs
             'error'     => get_post_meta( $post->ID, '_mm_error_message', true ),
         );

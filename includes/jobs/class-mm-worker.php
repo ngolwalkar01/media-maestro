@@ -58,11 +58,15 @@ class Media_Maestro_Worker {
                 $result_path = $provider->remove_background( $source_path );
                 break;
             case 'style_transfer':
-                // $prompt = ...
-                $result_path = $provider->style_transfer( $source_path, 'style prompt' );
+                $params = isset( $job['params'] ) ? $job['params'] : array();
+                $prompt = isset( $params['prompt'] ) ? $params['prompt'] : 'A futuristic cyberpunk city';
+                $result_path = $provider->style_transfer( $source_path, $prompt );
                 break;
             case 'regenerate':
-                $result_path = $provider->regenerate( $source_path, 'regen prompt', 0.5 );
+                $params = isset( $job['params'] ) ? $job['params'] : array();
+                $prompt = isset( $params['prompt'] ) ? $params['prompt'] : 'Startle image';
+                $strength = isset( $params['strength'] ) ? $params['strength'] : 0.5;
+                $result_path = $provider->regenerate( $source_path, $prompt, $strength );
                 break;
             default:
                 $this->fail_job( $job_id, 'Unknown operation.' );
