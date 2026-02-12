@@ -7,7 +7,7 @@
  * @subpackage Media_Maestro/includes/providers
  */
 
-class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider {
+class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface {
 
     /**
      * API Key.
