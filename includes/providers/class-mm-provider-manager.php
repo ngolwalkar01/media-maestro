@@ -84,7 +84,7 @@ class Media_Maestro_Provider_Manager {
     public function get_default_provider() {
         // For MVP, just return the Mock provider or the first one
         // Later, pull from settings
-        $provider_id = 'mock'; // Default for dev
+        $provider_id = get_option( 'mm_provider', 'mock' );
         return $this->get_provider( $provider_id );
     }
 }
