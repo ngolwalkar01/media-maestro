@@ -4,12 +4,15 @@
  * Extends the WordPress Media Library modal to add AI Tools.
  */
 (function ($, _) {
+    console.log('Media Maestro Media View Loaded');
+
     var media = wp.media;
 
-    // We verified mm_data exists in the previous step, ensuring it's available here too
     if (typeof mm_data === 'undefined') {
+        console.log('Media Maestro: mm_data missing in Media View');
         return;
     }
+    console.log('Media Maestro Media View Data:', mm_data);
 
     /**
      * View for the AI Tools Sidebar Section
@@ -24,6 +27,7 @@
         },
 
         initialize: function (options) {
+            console.log('MediaMaestroSidebar initialized');
             media.view.PriorityList.prototype.initialize.apply(this, arguments);
             this.model.on('change', this.render, this);
         },
@@ -42,11 +46,13 @@
 
         removeBackground: function (e) {
             e.preventDefault();
+            console.log('Remove Background Clicked (Modal)');
             this.startJob('remove_background');
         },
 
         styleTransfer: function (e) {
             e.preventDefault();
+            console.log('Style Transfer Clicked (Modal)');
             this.startJob('style_transfer', { prompt: 'Oil painting' });
         },
 
@@ -120,16 +126,13 @@
         },
 
         renderMediaMaestro: function () {
+            console.log('renderMediaMaestro called', this.model.get('type'));
             // Check if it's an image
             if (this.model.get('type') !== 'image') {
                 return;
             }
 
             // We want to append to the sidebar details
-            // The template usually has a .details or .settings area
-            // Ideally we hook into a specific region if possible, 
-            // but for now let's just append to the $el
-
             var sidebarView = new media.view.MediaMaestroSidebar({
                 controller: this.controller,
                 model: this.model,
@@ -137,8 +140,7 @@
             });
 
             this.views.add('.compat-attachment-fields', sidebarView);
-            // .compat-attachment-fields is usually where extra fields go. 
-            // Or we can try appending to .details directly
+            console.log('Sidebar view added');
         }
     });
 
