@@ -198,13 +198,12 @@ class Media_Maestro_Core {
     }
 
     /**
-     * The reference to the class that orchestrates the hooks with the plugin.
+     * Run the loader to execute all of the hooks with WordPress.
      *
-     * @since     1.0.0
-     * @return    Media_Maestro_Loader    Orchestrates the hooks of the plugin.
+     * @since    1.0.0
      */
-    public function get_loader() {
-        return $this->loader;
+    public function run() {
+        // Hooks are registered in the constructor.
     }
 
     /**
