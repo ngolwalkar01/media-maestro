@@ -97,8 +97,31 @@ class Media_Maestro_Admin {
 		 */
 
 		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/media-maestro-admin.js', array( 'jquery' ), $this->version, true );
-
+		
+        // Enqueue Media View script
+        if ( did_action( 'wp_enqueue_media' ) ) {
+            wp_enqueue_script( $this->plugin_name . '-media-view', plugin_dir_url( __FILE__ ) . 'js/media-maestro-media-view.js', array( 'media-views' ), $this->version, true );
+        }
 	}
+
+    /**
+     * Print JS Templates.
+     */
+    public function print_media_templates() {
+        ?>
+        <script type="text/html" id="tmpl-mm-sidebar-template">
+            <div class="mm-media-sidebar">
+                <h3>AI Media Studio</h3>
+                <div class="mm-actions">
+                    <button type="button" class="button mm-btn-remove-bg">Remove Background</button>
+                    <button type="button" class="button mm-btn-style">Style Transfer (Dev)</button>
+                </div>
+                <div class="mm-status" style="margin-top: 10px; color: #666;"></div>
+                <hr>
+            </div>
+        </script>
+        <?php
+    }
 
     /**
      * Register the administration menu for this plugin into the WordPress Dashboard menu.
