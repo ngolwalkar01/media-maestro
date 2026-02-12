@@ -143,13 +143,21 @@
             });
 
             // Manual append to ensure visibility
-            var $compat = this.$('.compat-attachment-fields');
-            if ($compat.length) {
-                $compat.prepend(sidebarView.el);
-                console.log('Appended sidebar to .compat-attachment-fields');
+            // Try to place it before the standard settings (Title, Caption, etc.)
+            var $settings = this.$('.settings');
+            if ($settings.length) {
+                $settings.before(sidebarView.el);
+                console.log('Inserted sidebar before .settings');
             } else {
-                this.$el.append(sidebarView.el);
-                console.log('Appended sidebar to main el');
+                // Fallback to compat or main
+                var $compat = this.$('.compat-attachment-fields');
+                if ($compat.length) {
+                    $compat.prepend(sidebarView.el);
+                    console.log('Appended sidebar to .compat-attachment-fields');
+                } else {
+                    this.$el.prepend(sidebarView.el); // Prepend to main el to be at top
+                    console.log('Prepended sidebar to main el');
+                }
             }
 
             sidebarView.render();
