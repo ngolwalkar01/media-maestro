@@ -2,10 +2,13 @@
 	'use strict';
 
 	$(document).ready(function () {
+		console.log('Media Maestro Admin JS Loaded');
 		// AI Media Studio - Meta Box Logic
 		if (typeof mm_data === 'undefined') {
+			console.log('Media Maestro: mm_data is undefined');
 			return;
 		}
+		console.log('Media Maestro Data:', mm_data);
 
 		const $container = $('#mm-ai-tools-container');
 		const $status = $('#mm-job-status');
@@ -15,11 +18,13 @@
 
 		$('#mm-btn-remove-bg').on('click', function (e) {
 			e.preventDefault();
+			console.log('Remove BG clicked');
 			startJob('remove_background');
 		});
 
 		$('#mm-btn-style-transfer').on('click', function (e) {
 			e.preventDefault();
+			console.log('Style Transfer clicked');
 			// detailed UI for prompt would be here, for now just simple trigger
 			startJob('style_transfer', { prompt: 'Oil painting' });
 		});
