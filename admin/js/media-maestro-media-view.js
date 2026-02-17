@@ -22,8 +22,8 @@
         template: wp.template('mm-sidebar-template'),
 
         events: {
-            'click .mm-btn-remove-bg': 'removeBackground',
-            'click .mm-btn-style': 'styleTransfer'
+            'change .mm-operation-select': 'onOperationChange',
+            'click .mm-btn-run': 'runJob'
         },
 
         initialize: function (options) {
@@ -47,13 +47,15 @@
             var op = this.$('.mm-operation-select').val();
 
             // Show/Hide Strength
-            if (['style_transfer', 'sketch', 'structure'].includes(op)) {
+            // Some operations need strength
+            if (['style_transfer', 'sketch', 'structure', 'generate_sd3'].includes(op)) {
                 this.$('.mm-strength-label').show();
             } else {
                 this.$('.mm-strength-label').hide();
             }
 
             // Show/Hide Prompt
+            // Remove BG and Upscale Fast usually don't need prompt
             if (['remove_bg', 'upscale_fast', 'upscale_conservative'].includes(op)) {
                 this.$('.mm-prompt-label').hide();
             } else {
