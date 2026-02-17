@@ -264,12 +264,21 @@ class Media_Maestro_Provider_Stability implements Media_Maestro_Provider_Interfa
         }
         
         // Check if it's JSON despite 200
-        // If it starts with '{', it's likely an error (or metadata?) but Stability returns binary direct usually.
-        //if ( substr( $result, 0, 1 ) === '{' ) {
+        // If it starts with '{', it's likely an error OR an async task ID.
+        if ( substr( $result, 0, 1 ) === '{' ) {
              $json = json_decode( $result, true );
+             
+             // Check for Async Task ID
+             if ( isset( $json['id'] ) && ! isset( $json['errors'] ) && ! isset( $json['finish_reason'] ) ) {
+                 // It's an async task! Poll for result.
+                 error_log( "MM_STABILITY: Async Task ID received: " . $json['id'] . ". Polling results..." );
+                 return $this->poll_async_result( $json['id'] );
+             }
+
+             // Otherwise, it's an error or unexpected JSON
              $msg = json_encode( $json );
              return new WP_Error( 'api_error', 'Stability returned JSON (not image): ' . $msg );
-       // }
+        }
 
         // Success! Result is binary image data.
         // Save to temp file.
@@ -281,5 +290,59 @@ class Media_Maestro_Provider_Stability implements Media_Maestro_Provider_Interfa
         
         error_log( "MM_STABILITY: Saved to $file_path" );
         return $file_path;
+    }
+
+    private function poll_async_result( $id ) {
+        $url = $this->api_base . '/results/' . $id;
+        $headers = array(
+            'Authorization: Bearer ' . $this->api_key,
+            'Accept: image/*' // Request image directly
+        );
+
+        // Poll for up to 60 seconds
+        for ( $i = 0; $i < 30; $i++ ) {
+            sleep( 2 ); // Wait 2s
+            
+            $ch = curl_init();
+            curl_setopt( $ch, CURLOPT_URL, $url );
+            curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1 );
+            curl_setopt( $ch, CURLOPT_HTTPHEADER, $headers );
+            
+            $result = curl_exec( $ch );
+            $http_code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+            curl_close( $ch );
+
+            if ( $http_code === 202 ) {
+                // Still processing
+                error_log( "MM_STABILITY: Job $id still processing (202)..." );
+                continue;
+            }
+
+            if ( $http_code === 200 ) {
+                // Done! Check if it's binary or JSON error
+                if ( substr( $result, 0, 1 ) === '{' ) {
+                     $json = json_decode( $result, true );
+                     if ( isset( $json['errors'] ) ) {
+                         return new WP_Error( 'api_error', 'Async Job Failed: ' . json_encode( $json ) );
+                     }
+                     // Sometimes results endpoint returns JSON with 'result' field if Accept is not honored? 
+                     // Or "status": "in-progress" (202 usually handles this).
+                }
+
+                error_log( "MM_STABILITY: Job $id completed! Saving image." );
+                
+                $upload_dir = wp_upload_dir();
+                $filename = 'stability-' . $id . '.png';
+                $file_path = $upload_dir['path'] . '/' . $filename;
+                file_put_contents( $file_path, $result );
+                return $file_path;
+            }
+            
+            // Error
+            error_log( "MM_STABILITY: Async Poll Error ($http_code): " . substr( $result, 0, 200 ) );
+            return new WP_Error( 'api_error', "Async Poll failed ($http_code): " . substr( $result, 0, 200 ) );
+        }
+
+        return new WP_Error( 'timeout', 'Timed out waiting for Stability AI generation.' );
     }
 }
