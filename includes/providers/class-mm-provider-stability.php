@@ -155,7 +155,13 @@ class Media_Maestro_Provider_Stability implements Media_Maestro_Provider_Interfa
     }
 
     public function replace_bg( $source_path, $prompt ) {
-         return $this->call_edit( 'stable-image/edit/replace-background-and-relight', $source_path, array( 'background_prompt' => $prompt ) );
+         // This endpoint requires 'subject_image' not 'image'.
+         $data = array(
+            'subject_image' => new CURLFile( $source_path ),
+            'background_prompt' => $prompt,
+            'output_format' => 'png'
+        );
+        return $this->request( 'stable-image/edit/replace-background-and-relight', $data );
     }
 
 
