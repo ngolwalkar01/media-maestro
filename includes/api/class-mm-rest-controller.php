@@ -119,7 +119,27 @@ class Media_Maestro_REST_Controller extends WP_REST_Controller {
                 'description'       => 'Operation to perform',
                 'type'              => 'string',
                 'required'          => true,
-                'enum'              => array( 'remove_background', 'style_transfer', 'regenerate' ),
+                // Updated with Stability Operations
+                'enum'              => array( 
+                    'remove_background', 
+                    'style_transfer', 
+                    'regenerate',
+                    // Stability
+                    'generate_ultra',
+                    'generate_core',
+                    'generate_sd3',
+                    'sketch',
+                    'structure',
+                    'upscale_fast',
+                    'upscale_conservative',
+                    'upscale_creative',
+                    'inpaint',
+                    'outpaint',
+                    'erase',
+                    'search_replace',
+                    'replace_bg',
+                    'remove_bg' // Alias for remove_background, handled in UI/Worker
+                ),
             ),
             'params' => array(
                 'description'       => 'Additional parameters',
