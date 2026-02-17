@@ -104,7 +104,7 @@ class Media_Maestro_Admin {
      * Enqueue Media View assets.
      */
     public function enqueue_media_assets() {
-        wp_enqueue_script( $this->plugin_name . '-media-view', plugin_dir_url( __FILE__ ) . 'js/media-maestro-media-view.js', array( 'media-views' ), time() + 5, true );
+        wp_enqueue_script( $this->plugin_name . '-media-view', plugin_dir_url( __FILE__ ) . 'js/media-maestro-media-view.js', array( 'media-views' ), time() + 7, true );
         wp_localize_script( $this->plugin_name . '-media-view', 'mm_data', array(
             'nonce'   => wp_create_nonce( 'wp_rest' ),
             'api_url' => get_rest_url( null, 'mm/v1/jobs' ),
@@ -119,11 +119,46 @@ class Media_Maestro_Admin {
         <script type="text/html" id="tmpl-mm-sidebar-template">
             <div class="mm-media-sidebar">
                 <h3>AI Media Studio</h3>
-                <div class="mm-actions">
-                    <textarea class="mm-prompt-input" rows="2" placeholder="Describe the image or style..." style="width:100%; margin-bottom:10px;"></textarea>
-                    <button type="button" class="button mm-btn-remove-bg">Remove Background</button>
-                    <button type="button" class="button mm-btn-style">Style Transfer (Dev)</button>
+                <div class="mm-config">
+                    <label>Operation:
+                        <select class="mm-operation-select" style="width:100%; margin-bottom:10px;">
+                            <optgroup label="Generation">
+                                <option value="generate_ultra">Stable Image Ultra</option>
+                                <option value="generate_core">Stable Image Core</option>
+                                <option value="generate_sd3">Stable Diffusion 3.5</option>
+                            </optgroup>
+                            <optgroup label="Edit / Transform">
+                                <option value="style_transfer">Style Transfer (Control)</option>
+                                <option value="sketch">Sketch to Image</option>
+                                <option value="structure">Structure (Depth)</option>
+                                <option value="inpaint">Inpaint (Masked)</option>
+                                <option value="outpaint">Outpaint</option>
+                                <option value="erase">Erase Object</option>
+                                <option value="search_replace">Search & Replace</option>
+                                <option value="remove_bg">Remove Background</option>
+                                <option value="replace_bg">Replace Background</option>
+                            </optgroup>
+                            <optgroup label="Upscale">
+                                <option value="upscale_conservative">Conservative Upscale</option>
+                                <option value="upscale_creative">Creative Upscale</option>
+                                <option value="upscale_fast">Fast Upscale (x4)</option>
+                            </optgroup>
+                        </select>
+                    </label>
+
+                    <label class="mm-prompt-label">Prompt:
+                        <textarea class="mm-prompt-input" rows="3" placeholder="Describe the desired result..." style="width:100%; margin-bottom:10px;"></textarea>
+                    </label>
+
+                    <label class="mm-strength-label" style="display:none;">Strength (0.0 - 1.0):
+                        <input type="range" class="mm-strength-input" min="0" max="1" step="0.1" value="0.7" style="width:100%;">
+                    </label>
                 </div>
+
+                <div class="mm-actions">
+                    <button type="button" class="button button-primary mm-btn-run">Run AI Job</button>
+                </div>
+                
                 <div class="mm-status" style="margin-top: 10px; color: #666;"></div>
                 <hr>
             </div>
@@ -163,6 +198,7 @@ class Media_Maestro_Admin {
         register_setting( $this->plugin_name, 'mm_provider' );
         register_setting( $this->plugin_name, 'mm_api_key' );
         register_setting( $this->plugin_name, 'mm_gemini_api_key' );
+        register_setting( $this->plugin_name, 'mm_stability_api_key' );
         
         add_settings_section(
             'mm_general_section',
@@ -194,12 +230,25 @@ class Media_Maestro_Admin {
             $this->plugin_name,
             'mm_general_section'
         );
+        add_settings_field(
+            'mm_stability_api_key',
+            'Stability AI API Key',
+            array( $this, 'stability_api_key_callback' ),
+            $this->plugin_name,
+            'mm_general_section'
+        );
     }
 
     public function api_key_callback() {
         $api_key = get_option( 'mm_api_key' );
         echo '<input type="password" name="mm_api_key" value="' . esc_attr( $api_key ) . '" class="regular-text">';
         echo '<p class="description">Enter your OpenAI API Key here if selected.</p>';
+    }
+
+    public function stability_api_key_callback() {
+        $api_key = get_option( 'mm_stability_api_key' );
+        echo '<input type="password" name="mm_stability_api_key" value="' . esc_attr( $api_key ) . '" class="regular-text">';
+        echo '<p class="description">Enter your Stability AI API Key here (DreamStudio/Stability Platform).</p>';
     }
 
     public function provider_callback() {
@@ -209,6 +258,7 @@ class Media_Maestro_Admin {
             <option value="mock" <?php selected( $provider, 'mock' ); ?>>Mock Provider (Dev)</option>
             <option value="openai" <?php selected( $provider, 'openai' ); ?>>OpenAI (DALL-E)</option>
             <option value="gemini" <?php selected( $provider, 'gemini' ); ?>>Google Gemini</option>
+            <option value="stability" <?php selected( $provider, 'stability' ); ?>>Stability AI</option>
         </select>
         <p class="description">Select which AI service to use.</p>
         <?php

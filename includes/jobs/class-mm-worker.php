@@ -53,24 +53,41 @@ class Media_Maestro_Worker {
         $result_path = false;
 
         // Execute Operation
-        switch ( $operation ) {
-            case 'remove_background':
-                $result_path = $provider->remove_background( $source_path );
-                break;
-            case 'style_transfer':
-                $params = isset( $job['params'] ) ? $job['params'] : array();
-                $prompt = isset( $params['prompt'] ) ? $params['prompt'] : 'A futuristic cyberpunk city';
-                $result_path = $provider->style_transfer( $source_path, $prompt );
-                break;
-            case 'regenerate':
-                $params = isset( $job['params'] ) ? $job['params'] : array();
-                $prompt = isset( $params['prompt'] ) ? $params['prompt'] : 'Startle image';
-                $strength = isset( $params['strength'] ) ? $params['strength'] : 0.5;
-                $result_path = $provider->regenerate( $source_path, $prompt, $strength );
-                break;
-            default:
-                $this->fail_job( $job_id, 'Unknown operation.' );
-                return;
+        // Execute Operation
+        if ( method_exists( $provider, $operation ) ) {
+            $params = isset( $job['params'] ) ? $job['params'] : array();
+            $prompt = isset( $params['prompt'] ) ? $params['prompt'] : '';
+            $strength = isset( $params['strength'] ) ? $params['strength'] : null;
+            
+            // Pass standard args: path, prompt, (optional strength/options)
+            // Note: Different methods have different signatures.
+            // We can unify them or just switch for mapped ones.
+            // Let's use specific mapping for known ones + magic fallback?
+            // Actually, dynamic call might be risky if signatures vary slightly.
+            // Let's use a hybrid:
+            
+            if ( in_array( $operation, array( 'remove_background', 'style_transfer', 'regenerate' ) ) ) {
+                // Interface methods
+                switch ( $operation ) {
+                    case 'remove_background':
+                         $result_path = $provider->remove_background( $source_path );
+                         break;
+                    case 'style_transfer':
+                         $result_path = $provider->style_transfer( $source_path, $prompt );
+                         break;
+                    case 'regenerate':
+                         $result_path = $provider->regenerate( $source_path, $prompt, $strength );
+                         break;
+                }
+            } else {
+                 // New Stability methods (assume signature: source, prompt, [strength])
+                 // Most take source + prompt.
+                 $result_path = $provider->$operation( $source_path, $prompt, $strength );
+            }
+
+        } else {
+             $this->fail_job( $job_id, "Operation '$operation' not supported by this provider." );
+             return;
         }
 
         if ( is_wp_error( $result_path ) ) {

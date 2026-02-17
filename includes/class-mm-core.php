@@ -107,6 +107,7 @@ class Media_Maestro_Core {
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/providers/class-mm-provider-mock.php';
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/providers/class-mm-provider-openai.php';
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/providers/class-mm-provider-gemini.php';
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/providers/class-mm-provider-stability.php';
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/providers/class-mm-provider-manager.php';
 
         // Load Worker

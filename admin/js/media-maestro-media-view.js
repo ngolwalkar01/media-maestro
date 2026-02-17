@@ -38,35 +38,47 @@
         },
 
         render: function () {
-            console.log('MediaMaestroSidebar render called');
-            if (!this.template) {
-                console.error('Template mm-sidebar-template not found');
-                return this;
-            }
-            try {
-                this.$el.html(this.template(this.prepare()));
-                console.log('MediaMaestroSidebar rendered content');
-            } catch (e) {
-                console.error('Error rendering MediaMaestroSidebar:', e);
-            }
+            this.$el.html(this.template(this.model.toJSON()));
+            this.onOperationChange(); // Set initial state
             return this;
         },
 
-        removeBackground: function (e) {
-            e.preventDefault();
-            console.log('Remove Background Clicked (Modal)');
-            this.startJob('remove_background');
+        onOperationChange: function () {
+            var op = this.$('.mm-operation-select').val();
+
+            // Show/Hide Strength
+            if (['style_transfer', 'sketch', 'structure'].includes(op)) {
+                this.$('.mm-strength-label').show();
+            } else {
+                this.$('.mm-strength-label').hide();
+            }
+
+            // Show/Hide Prompt
+            if (['remove_bg', 'upscale_fast', 'upscale_conservative'].includes(op)) {
+                this.$('.mm-prompt-label').hide();
+            } else {
+                this.$('.mm-prompt-label').show();
+            }
         },
 
-        styleTransfer: function (e) {
+        runJob: function (e) {
             e.preventDefault();
+            var op = this.$('.mm-operation-select').val();
             var prompt = this.$('.mm-prompt-input').val();
-            if ( ! prompt ) {
-                alert('Please enter a prompt for Style Transfer.');
+            var strength = this.$('.mm-strength-input').val();
+
+            // Validation
+            if (!['remove_bg', 'upscale_fast', 'upscale_conservative'].includes(op) && !prompt) {
+                alert('Please enter a prompt for this operation.');
                 return;
             }
-            console.log('Style Transfer Clicked with prompt:', prompt);
-            this.startJob('style_transfer', { prompt: prompt });
+
+            console.log('Running Job:', op, prompt, strength);
+
+            this.startJob(op, {
+                prompt: prompt,
+                strength: strength
+            });
         },
 
         startJob: function (operation, params = {}) {
