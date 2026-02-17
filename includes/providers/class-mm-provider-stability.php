@@ -262,6 +262,14 @@ class Media_Maestro_Provider_Stability implements Media_Maestro_Provider_Interfa
             error_log( "MM_STABILITY: API Error ($http_code): $msg" );
             return new WP_Error( 'api_error', 'Stability API Error: ' . $msg );
         }
+        
+        // Check if it's JSON despite 200
+        // If it starts with '{', it's likely an error (or metadata?) but Stability returns binary direct usually.
+        //if ( substr( $result, 0, 1 ) === '{' ) {
+             $json = json_decode( $result, true );
+             $msg = json_encode( $json );
+             return new WP_Error( 'api_error', 'Stability returned JSON (not image): ' . $msg );
+       // }
 
         // Success! Result is binary image data.
         // Save to temp file.
