@@ -296,7 +296,7 @@ class Media_Maestro_Provider_Stability implements Media_Maestro_Provider_Interfa
         $url = $this->api_base . '/results/' . $id;
         $headers = array(
             'Authorization: Bearer ' . $this->api_key,
-            'Accept: image/*' // Request image directly
+            'Accept: application/json' // Must use JSON for results endpoint
         );
 
         // Poll for up to 60 seconds
@@ -319,23 +319,46 @@ class Media_Maestro_Provider_Stability implements Media_Maestro_Provider_Interfa
             }
 
             if ( $http_code === 200 ) {
-                // Done! Check if it's binary or JSON error
-                if ( substr( $result, 0, 1 ) === '{' ) {
-                     $json = json_decode( $result, true );
-                     if ( isset( $json['errors'] ) ) {
-                         return new WP_Error( 'api_error', 'Async Job Failed: ' . json_encode( $json ) );
-                     }
-                     // Sometimes results endpoint returns JSON with 'result' field if Accept is not honored? 
-                     // Or "status": "in-progress" (202 usually handles this).
+                $json = json_decode( $result, true );
+                
+                if ( isset( $json['errors'] ) ) {
+                     return new WP_Error( 'api_error', 'Async Job Failed: ' . json_encode( $json ) );
+                }
+                
+                // Status check (sometimes 200 includes status=in-progress)
+                if ( isset( $json['status'] ) && $json['status'] === 'in-progress' ) {
+                     error_log( "MM_STABILITY: Job $id status in-progress..." );
+                     continue;
                 }
 
-                error_log( "MM_STABILITY: Job $id completed! Saving image." );
+                // Extract Image (Base64)
+                $base64_image = '';
                 
-                $upload_dir = wp_upload_dir();
-                $filename = 'stability-' . $id . '.png';
-                $file_path = $upload_dir['path'] . '/' . $filename;
-                file_put_contents( $file_path, $result );
-                return $file_path;
+                if ( isset( $json['image'] ) ) {
+                    // Top-level image key (typical for "Replace Background" v2beta)
+                    $base64_image = $json['image'];
+                } elseif ( isset( $json['result'] ) ) {
+                    $base64_image = $json['result'];
+                } elseif ( isset( $json['artifacts'][0]['base64'] ) ) {
+                    $base64_image = $json['artifacts'][0]['base64'];
+                } elseif ( isset( $json['images'][0]['buffer'] ) ) {
+                     // Sometimes buffer? Unlikely for this API.
+                }
+
+                if ( ! empty( $base64_image ) ) {
+                    error_log( "MM_STABILITY: Job $id completed! Saving image." );
+                    $image_data = base64_decode( $base64_image );
+                    
+                    $upload_dir = wp_upload_dir();
+                    $filename = 'stability-' . $id . '.png';
+                    $file_path = $upload_dir['path'] . '/' . $filename;
+                    file_put_contents( $file_path, $image_data );
+                    return $file_path;
+                }
+                
+                // Failed to find image in JSON
+                error_log( "MM_STABILITY: Could not find image in JSON response: " . substr( $result, 0, 200 ) );
+                return new WP_Error( 'api_error', 'Could not find image in async result.' );
             }
             
             // Error
