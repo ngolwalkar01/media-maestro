@@ -111,7 +111,7 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
         } else {
             curl_setopt($ch, CURLOPT_POSTFIELDS, $data );
         }
-        
+
         $result = curl_exec($ch);
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
@@ -132,12 +132,17 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
 
         // The URL is a remote URL. We need to download it to a temp path to return to the worker.
         $image_url = $json['data'][0]['url'];
+        
+        if ( ! function_exists( 'download_url' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+
         $temp_file = download_url( $image_url );
 
         if ( is_wp_error( $temp_file ) ) {
             return $temp_file;
         }
-
+        
         return $temp_file;
     }
 
