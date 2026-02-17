@@ -61,6 +61,12 @@
             } else {
                 this.$('.mm-prompt-label').show();
             }
+            // Show/Hide Direction
+            if (op === 'outpaint') {
+                this.$('.mm-direction-label').show();
+            } else {
+                this.$('.mm-direction-label').hide();
+            }
         },
 
         runJob: function (e) {
@@ -68,18 +74,20 @@
             var op = this.$('.mm-operation-select').val();
             var prompt = this.$('.mm-prompt-input').val();
             var strength = this.$('.mm-strength-input').val();
+            var direction = this.$('.mm-direction-select').val();
 
             // Validation
-            if (!['remove_bg', 'upscale_fast', 'upscale_conservative'].includes(op) && !prompt) {
+            if (!['remove_bg', 'upscale_fast', 'upscale_conservative', 'erase'].includes(op) && !prompt) {
                 alert('Please enter a prompt for this operation.');
                 return;
             }
 
-            console.log('Running Job:', op, prompt, strength);
+            console.log('Running Job:', op, prompt, strength, direction);
 
             this.startJob(op, {
                 prompt: prompt,
-                strength: strength
+                strength: strength,
+                direction: direction
             });
         },
 

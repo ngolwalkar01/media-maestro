@@ -104,7 +104,7 @@ class Media_Maestro_Admin {
      * Enqueue Media View assets.
      */
     public function enqueue_media_assets() {
-        wp_enqueue_script( $this->plugin_name . '-media-view', plugin_dir_url( __FILE__ ) . 'js/media-maestro-media-view.js', array( 'media-views' ), time() + 7, true );
+        wp_enqueue_script( $this->plugin_name . '-media-view', plugin_dir_url( __FILE__ ) . 'js/media-maestro-media-view.js', array( 'media-views' ), time() + 9, true );
         wp_localize_script( $this->plugin_name . '-media-view', 'mm_data', array(
             'nonce'   => wp_create_nonce( 'wp_rest' ),
             'api_url' => get_rest_url( null, 'mm/v1/jobs' ),
@@ -152,6 +152,16 @@ class Media_Maestro_Admin {
 
                     <label class="mm-strength-label" style="display:none;">Strength (0.0 - 1.0):
                         <input type="range" class="mm-strength-input" min="0" max="1" step="0.1" value="0.7" style="width:100%;">
+                    </label>
+
+                    <label class="mm-direction-label" style="display:none;">Expand Direction:
+                        <select class="mm-direction-select" style="width:100%; margin-bottom:10px;">
+                            <option value="down">Down (512px)</option>
+                            <option value="up">Up (512px)</option>
+                            <option value="left">Left (512px)</option>
+                            <option value="right">Right (512px)</option>
+                            <option value="all">All Sides (256px)</option>
+                        </select>
                     </label>
                 </div>
 

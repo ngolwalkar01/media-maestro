@@ -67,7 +67,7 @@ class Media_Maestro_Worker {
             // Let's use a hybrid:
             
             if ( in_array( $operation, array( 'remove_background', 'style_transfer', 'regenerate' ) ) ) {
-                // Interface methods
+                // ... legacy ...
                 switch ( $operation ) {
                     case 'remove_background':
                          $result_path = $provider->remove_background( $source_path );
@@ -80,9 +80,10 @@ class Media_Maestro_Worker {
                          break;
                 }
             } else {
-                 // New Stability methods (assume signature: source, prompt, [strength])
-                 // Most take source + prompt.
-                 $result_path = $provider->$operation( $source_path, $prompt, $strength );
+                 // New Stability methods
+                 // Signature: ( $source_path, $prompt, $strength, $params )
+                 // We pass $params array so methods can extract extras like 'direction'.
+                 $result_path = $provider->$operation( $source_path, $prompt, $strength, $params );
             }
 
         } else {

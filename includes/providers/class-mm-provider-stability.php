@@ -93,8 +93,42 @@ class Media_Maestro_Provider_Stability implements Media_Maestro_Provider_Interfa
         return new WP_Error( 'not_implemented', 'Inpaint requires a mask. Please implement masking UI.' );
     }
     
-    public function outpaint( $source_path, $prompt ) {
-         return new WP_Error( 'not_implemented', 'Outpaint requires manual offset/dimensions.' );
+    public function outpaint( $source_path, $prompt, $strength = null, $params = array() ) {
+        $direction = isset( $params['direction'] ) ? $params['direction'] : 'down';
+        
+        $data = array();
+        $pixels = 512;
+        
+        // Map direction to API params (left, right, up, down)
+        switch ( $direction ) {
+            case 'up':
+                $data['up'] = $pixels;
+                break;
+            case 'down':
+                $data['down'] = $pixels;
+                break;
+            case 'left':
+                $data['left'] = $pixels;
+                break;
+            case 'right':
+                $data['right'] = $pixels;
+                break;
+            case 'all':
+                $data['up'] = 256;
+                $data['down'] = 256;
+                $data['left'] = 256;
+                $data['right'] = 256;
+                break;
+            default:
+                $data['down'] = 512; // Default
+        }
+        
+        if ( ! empty( $prompt ) ) {
+            $data['prompt'] = $prompt; // Often outpaint only needs direction, prompt optional? 
+            // Stability Outpaint uses prompt to fill the new area.
+        }
+
+        return $this->call_edit( 'stable-image/edit/outpaint', $source_path, $data );
     }
 
     public function erase( $source_path ) {
