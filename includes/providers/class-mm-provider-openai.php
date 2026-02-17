@@ -66,84 +66,176 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
             return new WP_Error( 'missing_api_key', 'OpenAI API Key is missing.' );
         }
 
-        // MVP DECISION:
-        // The user wants to see "Changes" based on the prompt. 
-        // OpenAI 'variations' ignores the prompt. 
-        // OpenAI 'edits' requires a mask.
-        // To demonstrate the pipeline and Prompt capability, we will use 'generations' (Text-to-Image)
-        // if a prompt is provided. This will generate a NEW image based on the prompt, 
-        // ignoring the source image visual content (but proving the flow works).
+        // 1. If NO prompt, fallback to Variations (Image2Image without prompt)
+        if ( empty( $prompt ) ) {
+             return $this->generate_variation( $source_path );
+        }
+
+        // 2. "Smart Edit" Pipeline:
+        //    A. Analyze Image (GPT-4o Vision) -> Get Description
+        //    B. Generate New Image (DALL-E 3) -> Description + User Prompt
+
+        // Step A: Describe Image
+        error_log( "MM_OPENAI: Analyzing image for Smart Edit..." );
+        $description = $this->analyze_image( $source_path );
         
-        if ( ! empty( $prompt ) && $prompt !== 'Oil painting' ) {
-             $url = 'https://api.openai.com/v1/images/generations';
-             $data = array(
-                'prompt' => $prompt,
-                'n'      => 1,
-                'size'   => '1024x1024',
-             );
-             // No file upload needed for generations
-             $headers = array(
-                'Authorization: Bearer ' . $this->api_key,
-                'Content-Type: application/json'
-             );
+        if ( is_wp_error( $description ) ) {
+            error_log( "MM_OPENAI: Analysis failed: " . $description->get_error_message() );
+            // Fallback: Just use the user prompt blindly
+            $final_prompt = $prompt;
         } else {
-            // Fallback to variations (Image-to-Image, ignores prompt)
-            $url = 'https://api.openai.com/v1/images/variations';
-            $data = array(
-                'image' => new CURLFile( $source_path ),
-                'n'     => 1,
-                'size'  => '1024x1024'
-            );
-             $headers = array(
-                'Authorization: Bearer ' . $this->api_key,
-                'Content-Type: multipart/form-data'
-             );
+            error_log( "MM_OPENAI: Image Description: " . substr( $description, 0, 100 ) . "..." );
+            // Combine: Content Description + Style/Edit Instruction
+            $final_prompt = "Create an image based on this description: " . $description . ". \n\n Modification/Style to apply: " . $prompt;
         }
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        // Step B: Generate
+        error_log( "MM_OPENAI: Generating with prompt: " . substr( $final_prompt, 0, 100 ) . "..." );
+        return $this->generate_image( $final_prompt );
+    }
+
+    /**
+     * Analyze image using GPT-4o.
+     */
+    private function analyze_image( $path ) {
+        $type = mime_content_type( $path );
+        $data = file_get_contents( $path );
+        $base64 = base64_encode( $data );
+        $data_url = 'data:' . $type . ';base64,' . $base64;
+
+        $url = 'https://api.openai.com/v1/chat/completions';
         
-        if ( isset( $headers[1] ) && strpos( $headers[1], 'application/json' ) !== false ) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode( $data ) );
-        } else {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $data );
+        $body = array(
+            'model' => 'gpt-4o',
+            'messages' => array(
+                array(
+                    'role' => 'user',
+                    'content' => array(
+                        array(
+                            'type' => 'text',
+                            'text' => 'Describe the content, composition, and main subject of this image in detail. Be objective.'
+                        ),
+                        array(
+                            'type' => 'image_url',
+                            'image_url' => array(
+                                'url' => $data_url
+                            )
+                        )
+                    )
+                )
+            ),
+            'max_tokens' => 300
+        );
+
+        $args = array(
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $this->api_key,
+                'Content-Type'  => 'application/json'
+            ),
+            'body'    => json_encode( $body ),
+            'timeout' => 60
+        );
+
+        $response = wp_remote_post( $url, $args );
+
+        if ( is_wp_error( $response ) ) {
+            return $response;
+        }
+        
+        $body = wp_remote_retrieve_body( $response );
+        $json = json_decode( $body, true );
+
+        if ( ! empty( $json['choices'][0]['message']['content'] ) ) {
+            return $json['choices'][0]['message']['content'];
         }
 
-        $result = curl_exec($ch);
-        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
+        return new WP_Error( 'analysis_failed', 'Could not analyze image.' );
+    }
 
-        if ( $error ) {
-            return new WP_Error( 'api_error', 'OpenAI cURL Error: ' . $error );
+    /**
+     * Generate image using DALL-E 3.
+     */
+    private function generate_image( $prompt ) {
+        $url = 'https://api.openai.com/v1/images/generations';
+        
+        $body = array(
+            'model'  => 'dall-e-3',
+            'prompt' => substr( $prompt, 0, 4000 ), // limit
+            'n'      => 1,
+            'size'   => '1024x1024'
+        );
+
+        $args = array(
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $this->api_key,
+                'Content-Type'  => 'application/json'
+            ),
+            'body'    => json_encode( $body ),
+            'timeout' => 60
+        );
+
+        $response = wp_remote_post( $url, $args );
+
+        if ( is_wp_error( $response ) ) {
+            return $response;
         }
 
-        if ( $http_code !== 200 ) {
-            return new WP_Error( 'api_error', 'OpenAI API Error: ' . $result );
+        $code = wp_remote_retrieve_response_code( $response );
+        $body = wp_remote_retrieve_body( $response );
+
+        if ( $code !== 200 ) {
+             error_log( "MM_OPENAI: Gen Error: $body" );
+             return new WP_Error( 'api_error', "OpenAI Error ($code): $body" );
         }
 
-        $json = json_decode( $result, true );
+        $json = json_decode( $body, true );
+        
         if ( empty( $json['data'][0]['url'] ) ) {
-            return new WP_Error( 'api_error', 'Invalid response from OpenAI.' );
+            return new WP_Error( 'api_error', 'Invalid response from DALL-E.' );
         }
 
-        // The URL is a remote URL. We need to download it to a temp path to return to the worker.
         $image_url = $json['data'][0]['url'];
         
         if ( ! function_exists( 'download_url' ) ) {
             require_once ABSPATH . 'wp-admin/includes/file.php';
         }
 
-        $temp_file = download_url( $image_url );
+        return download_url( $image_url );
+    }
 
-        if ( is_wp_error( $temp_file ) ) {
-            return $temp_file;
-        }
+    /**
+     * Generate variation (Fallback).
+     */
+    private function generate_variation( $source_path ) {
+        $url = 'https://api.openai.com/v1/images/variations';
         
-        return $temp_file;
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Authorization: Bearer ' . $this->api_key,
+            'Content-Type: multipart/form-data' 
+        ));
+        
+        $cfile = new CURLFile($source_path);
+        $data = array('image' => $cfile, 'n' => 1, 'size' => '1024x1024');
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        
+        $result = curl_exec($ch);
+        curl_close($ch);
+        
+        $json = json_decode( $result, true );
+        
+        if ( empty( $json['data'][0]['url'] ) ) {
+            return new WP_Error( 'api_error', 'Variation failed.' );
+        }
+
+        if ( ! function_exists( 'download_url' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+
+        return download_url( $json['data'][0]['url'] );
     }
 
 }

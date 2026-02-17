@@ -60,8 +60,13 @@
 
         styleTransfer: function (e) {
             e.preventDefault();
-            console.log('Style Transfer Clicked (Modal)');
-            this.startJob('style_transfer', { prompt: 'A futuristic cyberpunk city' });
+            var prompt = this.$('.mm-prompt-input').val();
+            if ( ! prompt ) {
+                alert('Please enter a prompt for Style Transfer.');
+                return;
+            }
+            console.log('Style Transfer Clicked with prompt:', prompt);
+            this.startJob('style_transfer', { prompt: prompt });
         },
 
         startJob: function (operation, params = {}) {

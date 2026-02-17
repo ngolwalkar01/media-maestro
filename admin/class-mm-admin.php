@@ -104,7 +104,7 @@ class Media_Maestro_Admin {
      * Enqueue Media View assets.
      */
     public function enqueue_media_assets() {
-        wp_enqueue_script( $this->plugin_name . '-media-view', plugin_dir_url( __FILE__ ) . 'js/media-maestro-media-view.js', array( 'media-views' ), time() + 3, true );
+        wp_enqueue_script( $this->plugin_name . '-media-view', plugin_dir_url( __FILE__ ) . 'js/media-maestro-media-view.js', array( 'media-views' ), time() + 5, true );
         wp_localize_script( $this->plugin_name . '-media-view', 'mm_data', array(
             'nonce'   => wp_create_nonce( 'wp_rest' ),
             'api_url' => get_rest_url( null, 'mm/v1/jobs' ),
@@ -120,6 +120,7 @@ class Media_Maestro_Admin {
             <div class="mm-media-sidebar">
                 <h3>AI Media Studio</h3>
                 <div class="mm-actions">
+                    <textarea class="mm-prompt-input" rows="2" placeholder="Describe the image or style..." style="width:100%; margin-bottom:10px;"></textarea>
                     <button type="button" class="button mm-btn-remove-bg">Remove Background</button>
                     <button type="button" class="button mm-btn-style">Style Transfer (Dev)</button>
                 </div>
