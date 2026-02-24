@@ -128,6 +128,7 @@ class Media_Maestro_Admin {
                                 <option value="generate_sd3">Stable Diffusion 3.5</option>
                             </optgroup>
                             <optgroup label="Edit / Transform">
+                                <option value="product_placement">Product Placement (OpenAI Ref)</option>
                                 <option value="style_transfer">Style Transfer (Control)</option>
                                 <option value="sketch">Sketch to Image</option>
                                 <option value="structure">Structure (Depth)</option>

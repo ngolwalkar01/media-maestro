@@ -123,6 +123,7 @@ class Media_Maestro_REST_Controller extends WP_REST_Controller {
                 'enum'              => array( 
                     'remove_background', 
                     'style_transfer', 
+                    'product_placement',
                     'regenerate',
                     // Stability
                     'generate_ultra',

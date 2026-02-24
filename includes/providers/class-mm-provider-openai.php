@@ -59,6 +59,72 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
     }
 
     /**
+     * Product Placement (Reference Image to new scene using gpt-image-1)
+     */
+    public function product_placement( $source_path, $prompt, $options = array() ) {
+        if ( empty( $this->api_key ) ) {
+            return new WP_Error( 'missing_api_key', 'OpenAI API Key is missing.' );
+        }
+
+        if ( empty( $prompt ) ) {
+            return new WP_Error( 'missing_prompt', 'A prompt is required for Product Placement.' );
+        }
+
+        $url = 'https://api.openai.com/v1/images/edits';
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Authorization: Bearer ' . $this->api_key,
+            'Content-Type: multipart/form-data' 
+        ));
+        
+        $cfile = new CURLFile($source_path);
+        
+        $data = array(
+            'image' => $cfile, 
+            'prompt' => substr( $prompt, 0, 4000 ),
+            'model' => 'gpt-image-1', // New model that supports reference images
+            'n' => 1, 
+            'size' => '1024x1024'
+        );
+        
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        
+        error_log( "MM_OPENAI: Requesting Product Placement with gpt-image-1..." );
+        
+        $result = curl_exec($ch);
+        $http_code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+        curl_close($ch);
+        
+        if ( $http_code !== 200 ) {
+             error_log( "MM_OPENAI: Product Placement Error ($http_code): $result" );
+             
+             // Try to parse JSON error for better message
+             $json_error = json_decode( $result, true );
+             if ( isset( $json_error['error']['message'] ) ) {
+                 return new WP_Error( 'api_error', "OpenAI Error: " . $json_error['error']['message'] );
+             }
+             return new WP_Error( 'api_error', "OpenAI Error ($http_code): " . substr($result, 0, 200) );
+        }
+
+        $json = json_decode( $result, true );
+        
+        if ( empty( $json['data'][0]['url'] ) ) {
+            return new WP_Error( 'api_error', 'Image generation failed: ' . $result );
+        }
+
+        if ( ! function_exists( 'download_url' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+
+        error_log( "MM_OPENAI: Product Placement successful. Downloading..." );
+        return download_url( $json['data'][0]['url'] );
+    }
+
+    /**
      * Style Transfer / Edit.
      */
     public function style_transfer( $source_path, $prompt, $options = array() ) {
