@@ -185,6 +185,18 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
         return $this->generate_image( $final_prompt );
     }
 
+    private function mm_create_temp_file( $prefix = 'mm_' ) {
+        $upload_dir = wp_upload_dir();
+        $dir = ! empty( $upload_dir['basedir'] ) ? $upload_dir['basedir'] : sys_get_temp_dir();
+
+        $tmp = tempnam( $dir, $prefix );
+        if ( ! $tmp ) {
+            $tmp = tempnam( sys_get_temp_dir(), $prefix );
+        }
+
+        return $tmp;
+    }
+
     private function mm_make_background_transparent_png( $png_path, $tolerance = 30 ) {
         if ( ! file_exists( $png_path ) ) {
             return new WP_Error( 'missing_file', 'PNG file not found.' );
@@ -245,7 +257,7 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
             }
         }
 
-        $out = wp_tempnam( 'mm_transparent_' . wp_basename( $png_path ) );
+        $out = $this->mm_create_temp_file( 'mm_transparent_' );
         if ( ! $out ) {
             imagedestroy( $im );
             return new WP_Error( 'tmp_failed', 'Could not create temp file for transparent PNG.' );
@@ -325,7 +337,7 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
             }
         }
 
-        $out = wp_tempnam( 'mm_mask_' . wp_basename( $png_path ) );
+        $out = $this->mm_create_temp_file( 'mm_mask_' );
         if ( ! $out ) {
             imagedestroy( $im );
             imagedestroy( $mask );
