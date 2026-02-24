@@ -70,7 +70,7 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
             return new WP_Error( 'missing_prompt', 'A prompt is required for Product Placement.' );
         }
 
-        // DALL-E edits require PNG
+        // Image edits require PNG
         $mime_type = mime_content_type( $source_path );
         if ( $mime_type !== 'image/png' ) {
             return new WP_Error( 'invalid_format', 'OpenAI image edits only support PNG images. Please use a PNG image instead of ' . $mime_type );
@@ -83,15 +83,17 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
         $mask_path = ! empty( $options['mask_path'] ) ? $options['mask_path'] : '';
         $prepared_image_path = $source_path;
 
+        $tolerance = ! empty( $options['mask_tolerance'] ) ? (int) $options['mask_tolerance'] : 30;
+
         if ( empty( $mask_path ) || ! file_exists( $mask_path ) ) {
             // Create a prepared image with transparent background (best-effort)
-            $prepared = $this->mm_make_background_transparent_png( $source_path, ! empty( $options['mask_tolerance'] ) ? (int) $options['mask_tolerance'] : 30 );
+            $prepared = $this->mm_make_background_transparent_png( $source_path, $tolerance );
             if ( ! is_wp_error( $prepared ) ) {
                 $prepared_image_path = $prepared;
             }
 
             // Create mask: transparent where edits allowed (background), opaque where shirt is kept
-            $auto_mask = $this->mm_generate_mask_from_background( $prepared_image_path, ! empty( $options['mask_tolerance'] ) ? (int) $options['mask_tolerance'] : 30 );
+            $auto_mask = $this->mm_generate_mask_from_background( $prepared_image_path, $tolerance );
             if ( is_wp_error( $auto_mask ) ) {
                 return $auto_mask;
             }
@@ -117,6 +119,8 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
             'model'  => $model,
             'n'      => 1,
             'size'   => '1024x1024',
+            // If your setup supports it, you can try forcing URL:
+            // 'response_format' => 'url',
         );
 
         curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
@@ -138,16 +142,43 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
 
         $json = json_decode( $result, true );
 
-        if ( empty( $json['data'][0]['url'] ) ) {
-            return new WP_Error( 'api_error', 'Image generation succeeded but no URL was returned: ' . $result );
+        // 1) If URL returned, download it
+        if ( ! empty( $json['data'][0]['url'] ) ) {
+            if ( ! function_exists( 'download_url' ) ) {
+                require_once ABSPATH . 'wp-admin/includes/file.php';
+            }
+            return download_url( $json['data'][0]['url'] );
         }
 
-        if ( ! function_exists( 'download_url' ) ) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
+        // 2) If base64 returned, decode and save to a temp png
+        if ( ! empty( $json['data'][0]['b64_json'] ) ) {
+            $raw = base64_decode( $json['data'][0]['b64_json'] );
+            if ( ! $raw ) {
+                return new WP_Error( 'decode_failed', 'Image was returned as base64 but could not be decoded.' );
+            }
+
+            // Uses your helper that wraps PHP tempnam().
+            // Make sure you have mm_create_temp_file() in the class.
+            $tmp = $this->mm_create_temp_file( 'mm_openai_img_' );
+            if ( ! $tmp ) {
+                return new WP_Error( 'tmp_failed', 'Could not create temp file for decoded image.' );
+            }
+
+            $png_path = $tmp . '.png';
+            $written  = file_put_contents( $png_path, $raw );
+
+            // tempnam creates an empty file; remove it
+            @unlink( $tmp );
+
+            if ( ! $written ) {
+                return new WP_Error( 'write_failed', 'Failed to write decoded image to temp file.' );
+            }
+
+            return $png_path; // caller can sideload into WP media
         }
 
-        return download_url( $json['data'][0]['url'] );
-    }
+        return new WP_Error( 'api_error', 'Image generation succeeded but neither url nor b64_json was returned: ' . $result );
+        }
 
     /**
      * Style Transfer / Edit.
