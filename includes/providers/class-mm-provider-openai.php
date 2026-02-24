@@ -70,65 +70,82 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
             return new WP_Error( 'missing_prompt', 'A prompt is required for Product Placement.' );
         }
 
-        // DALL-E 2 strictly requires PNG files for edits
+        // DALL-E edits require PNG
         $mime_type = mime_content_type( $source_path );
         if ( $mime_type !== 'image/png' ) {
-            return new WP_Error( 'invalid_format', 'OpenAI DALL-E 2 edits only support PNG images. Please use a PNG image instead of ' . $mime_type );
+            return new WP_Error( 'invalid_format', 'OpenAI image edits only support PNG images. Please use a PNG image instead of ' . $mime_type );
         }
 
-        // The correct endpoint for editing/reference images is /v1/images/edits
+        // Model (recommend gpt-image-1 for better fidelity)
+        $model = ! empty( $options['model'] ) ? $options['model'] : 'gpt-image-1'; // or 'dall-e-2'
+
+        // If user provides a mask, use it. Otherwise auto-generate mask + prep image.
+        $mask_path = ! empty( $options['mask_path'] ) ? $options['mask_path'] : '';
+        $prepared_image_path = $source_path;
+
+        if ( empty( $mask_path ) || ! file_exists( $mask_path ) ) {
+            // Create a prepared image with transparent background (best-effort)
+            $prepared = $this->mm_make_background_transparent_png( $source_path, ! empty( $options['mask_tolerance'] ) ? (int) $options['mask_tolerance'] : 30 );
+            if ( ! is_wp_error( $prepared ) ) {
+                $prepared_image_path = $prepared;
+            }
+
+            // Create mask: transparent where edits allowed (background), opaque where shirt is kept
+            $auto_mask = $this->mm_generate_mask_from_background( $prepared_image_path, ! empty( $options['mask_tolerance'] ) ? (int) $options['mask_tolerance'] : 30 );
+            if ( is_wp_error( $auto_mask ) ) {
+                return $auto_mask;
+            }
+            $mask_path = $auto_mask;
+        }
+
         $url = 'https://api.openai.com/v1/images/edits';
-        
+
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+        curl_setopt( $ch, CURLOPT_URL, $url );
+        curl_setopt( $ch, CURLOPT_POST, 1 );
+        curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1 );
+
+        // IMPORTANT: do NOT set Content-Type manually; let cURL create the boundary
+        curl_setopt( $ch, CURLOPT_HTTPHEADER, array(
             'Authorization: Bearer ' . $this->api_key,
-            'Content-Type: multipart/form-data' 
-        ));
-        
-        // Pass the mime type to CURLFile so the API knows what it is
-        $cfile = new CURLFile( $source_path, $mime_type, wp_basename( $source_path ) );
-        
+        ) );
+
         $data = array(
-            'image' => $cfile, 
+            'image'  => new CURLFile( $prepared_image_path, 'image/png', wp_basename( $prepared_image_path ) ),
+            'mask'   => new CURLFile( $mask_path, 'image/png', wp_basename( $mask_path ) ),
             'prompt' => substr( $prompt, 0, 4000 ),
-            'model' => 'dall-e-2', 
-            'n' => 1, 
-            'size' => '1024x1024'
+            'model'  => $model,
+            'n'      => 1,
+            'size'   => '1024x1024',
         );
-        
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        
-        error_log( "MM_OPENAI: Requesting Product Placement with dall-e-2 on /v1/images/edits API..." );
-        
-        $result = curl_exec($ch);
+
+        curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
+
+        error_log( "MM_OPENAI: Product Placement (model={$model}) using /v1/images/edits with mask..." );
+
+        $result = curl_exec( $ch );
         $http_code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-        curl_close($ch);
-        
+        curl_close( $ch );
+
         if ( $http_code !== 200 ) {
-             error_log( "MM_OPENAI: Product Placement Error ($http_code): $result" );
-             
-             // Try to parse JSON error for better message
-             $json_error = json_decode( $result, true );
-             if ( isset( $json_error['error']['message'] ) ) {
-                 return new WP_Error( 'api_error', "OpenAI Error: " . $json_error['error']['message'] );
-             }
-             return new WP_Error( 'api_error', "OpenAI Error ($http_code): " . substr($result, 0, 200) );
+            error_log( "MM_OPENAI: Product Placement Error ($http_code): $result" );
+            $json_error = json_decode( $result, true );
+            if ( isset( $json_error['error']['message'] ) ) {
+                return new WP_Error( 'api_error', "OpenAI Error: " . $json_error['error']['message'] );
+            }
+            return new WP_Error( 'api_error', "OpenAI Error ($http_code): " . substr( $result, 0, 200 ) );
         }
 
         $json = json_decode( $result, true );
-        
+
         if ( empty( $json['data'][0]['url'] ) ) {
-            return new WP_Error( 'api_error', 'Image generation failed: ' . $result );
+            return new WP_Error( 'api_error', 'Image generation succeeded but no URL was returned: ' . $result );
         }
 
         if ( ! function_exists( 'download_url' ) ) {
             require_once ABSPATH . 'wp-admin/includes/file.php';
         }
 
-        error_log( "MM_OPENAI: Product Placement successful. Downloading..." );
         return download_url( $json['data'][0]['url'] );
     }
 
@@ -166,6 +183,162 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
         // Step B: Generate
         error_log( "MM_OPENAI: Generating with prompt: " . substr( $final_prompt, 0, 100 ) . "..." );
         return $this->generate_image( $final_prompt );
+    }
+
+    private function mm_make_background_transparent_png( $png_path, $tolerance = 30 ) {
+        if ( ! file_exists( $png_path ) ) {
+            return new WP_Error( 'missing_file', 'PNG file not found.' );
+        }
+
+        if ( ! function_exists( 'imagecreatefrompng' ) ) {
+            return new WP_Error( 'gd_missing', 'GD library is required for automatic masking.' );
+        }
+
+        $im = imagecreatefrompng( $png_path );
+        if ( ! $im ) {
+            return new WP_Error( 'img_load_failed', 'Could not read PNG for transparency processing.' );
+        }
+
+        imagesavealpha( $im, true );
+
+        $w = imagesx( $im );
+        $h = imagesy( $im );
+
+        // Sample background from 4 corners and average
+        $corners = array(
+            imagecolorsforindex( $im, imagecolorat( $im, 0, 0 ) ),
+            imagecolorsforindex( $im, imagecolorat( $im, $w-1, 0 ) ),
+            imagecolorsforindex( $im, imagecolorat( $im, 0, $h-1 ) ),
+            imagecolorsforindex( $im, imagecolorat( $im, $w-1, $h-1 ) ),
+        );
+
+        $bg = array( 'red' => 0, 'green' => 0, 'blue' => 0 );
+        foreach ( $corners as $c ) {
+            $bg['red']   += (int) $c['red'];
+            $bg['green'] += (int) $c['green'];
+            $bg['blue']  += (int) $c['blue'];
+        }
+        $bg['red']   = (int) round( $bg['red'] / 4 );
+        $bg['green'] = (int) round( $bg['green'] / 4 );
+        $bg['blue']  = (int) round( $bg['blue'] / 4 );
+
+        // Walk pixels and make background transparent
+        for ( $y = 0; $y < $h; $y++ ) {
+            for ( $x = 0; $x < $w; $x++ ) {
+                $rgba = imagecolorsforindex( $im, imagecolorat( $im, $x, $y ) );
+
+                // If pixel already transparent, keep it
+                if ( isset( $rgba['alpha'] ) && $rgba['alpha'] >= 120 ) {
+                    continue;
+                }
+
+                $is_bg =
+                    abs( $rgba['red']   - $bg['red'] )   <= $tolerance &&
+                    abs( $rgba['green'] - $bg['green'] ) <= $tolerance &&
+                    abs( $rgba['blue']  - $bg['blue'] )  <= $tolerance;
+
+                if ( $is_bg ) {
+                    // alpha: 127 = fully transparent in GD
+                    $col = imagecolorallocatealpha( $im, $rgba['red'], $rgba['green'], $rgba['blue'], 127 );
+                    imagesetpixel( $im, $x, $y, $col );
+                }
+            }
+        }
+
+        $out = wp_tempnam( 'mm_transparent_' . wp_basename( $png_path ) );
+        if ( ! $out ) {
+            imagedestroy( $im );
+            return new WP_Error( 'tmp_failed', 'Could not create temp file for transparent PNG.' );
+        }
+
+        // Ensure .png extension
+        $out_png = $out . '.png';
+        imagepng( $im, $out_png );
+        imagedestroy( $im );
+
+        return $out_png;
+    }
+
+    private function mm_generate_mask_from_background( $png_path, $tolerance = 30 ) {
+        if ( ! file_exists( $png_path ) ) {
+            return new WP_Error( 'missing_file', 'PNG file not found for mask generation.' );
+        }
+
+        if ( ! function_exists( 'imagecreatefrompng' ) ) {
+            return new WP_Error( 'gd_missing', 'GD library is required for automatic masking.' );
+        }
+
+        $im = imagecreatefrompng( $png_path );
+        if ( ! $im ) {
+            return new WP_Error( 'img_load_failed', 'Could not read PNG for mask generation.' );
+        }
+
+        imagesavealpha( $im, true );
+
+        $w = imagesx( $im );
+        $h = imagesy( $im );
+
+        // Determine background color from corners
+        $corners = array(
+            imagecolorsforindex( $im, imagecolorat( $im, 0, 0 ) ),
+            imagecolorsforindex( $im, imagecolorat( $im, $w-1, 0 ) ),
+            imagecolorsforindex( $im, imagecolorat( $im, 0, $h-1 ) ),
+            imagecolorsforindex( $im, imagecolorat( $im, $w-1, $h-1 ) ),
+        );
+
+        $bg = array( 'red' => 0, 'green' => 0, 'blue' => 0 );
+        foreach ( $corners as $c ) {
+            $bg['red']   += (int) $c['red'];
+            $bg['green'] += (int) $c['green'];
+            $bg['blue']  += (int) $c['blue'];
+        }
+        $bg['red']   = (int) round( $bg['red'] / 4 );
+        $bg['green'] = (int) round( $bg['green'] / 4 );
+        $bg['blue']  = (int) round( $bg['blue'] / 4 );
+
+        // Create mask image: transparent = editable area, opaque = keep shirt
+        $mask = imagecreatetruecolor( $w, $h );
+        imagesavealpha( $mask, true );
+        $transparent = imagecolorallocatealpha( $mask, 0, 0, 0, 127 );
+        imagefill( $mask, 0, 0, $transparent );
+
+        $opaque = imagecolorallocatealpha( $mask, 0, 0, 0, 0 );
+
+        for ( $y = 0; $y < $h; $y++ ) {
+            for ( $x = 0; $x < $w; $x++ ) {
+                $rgba = imagecolorsforindex( $im, imagecolorat( $im, $x, $y ) );
+
+                // If image pixel is transparent, it's definitely editable
+                if ( isset( $rgba['alpha'] ) && $rgba['alpha'] >= 120 ) {
+                    continue;
+                }
+
+                $is_bg =
+                    abs( $rgba['red']   - $bg['red'] )   <= $tolerance &&
+                    abs( $rgba['green'] - $bg['green'] ) <= $tolerance &&
+                    abs( $rgba['blue']  - $bg['blue'] )  <= $tolerance;
+
+                if ( ! $is_bg ) {
+                    // keep region (shirt) => opaque in mask
+                    imagesetpixel( $mask, $x, $y, $opaque );
+                }
+            }
+        }
+
+        $out = wp_tempnam( 'mm_mask_' . wp_basename( $png_path ) );
+        if ( ! $out ) {
+            imagedestroy( $im );
+            imagedestroy( $mask );
+            return new WP_Error( 'tmp_failed', 'Could not create temp file for mask PNG.' );
+        }
+
+        $out_png = $out . '.png';
+        imagepng( $mask, $out_png );
+
+        imagedestroy( $im );
+        imagedestroy( $mask );
+
+        return $out_png;
     }
 
     /**
@@ -289,7 +462,6 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_HTTPHEADER, array(
             'Authorization: Bearer ' . $this->api_key,
-            'Content-Type: multipart/form-data' 
         ));
         
         $cfile = new CURLFile($source_path);
