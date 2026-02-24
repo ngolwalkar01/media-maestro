@@ -59,7 +59,7 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
     }
 
     /**
-     * Product Placement (Reference Image to new scene using gpt-image-1)
+     * Product Placement (Reference Image to new scene using gpt-image-1.5)
      */
     public function product_placement( $source_path, $prompt, $options = array() ) {
         if ( empty( $this->api_key ) ) {
@@ -70,7 +70,8 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
             return new WP_Error( 'missing_prompt', 'A prompt is required for Product Placement.' );
         }
 
-        $url = 'https://api.openai.com/v1/images';
+        // The correct endpoint for editing/reference images is /v1/images/edits
+        $url = 'https://api.openai.com/v1/images/edits';
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -86,14 +87,14 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
         $data = array(
             'image' => $cfile, 
             'prompt' => substr( $prompt, 0, 4000 ),
-            'model' => 'gpt-image-1',
+            'model' => 'gpt-image-1.5', // Using highest supported model
             'n' => 1, 
             'size' => '1024x1024'
         );
         
         curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
         
-        error_log( "MM_OPENAI: Requesting Product Placement with gpt-image-1 on /v1/images API using multipart/form-data..." );
+        error_log( "MM_OPENAI: Requesting Product Placement with gpt-image-1.5 on /v1/images/edits API..." );
         
         $result = curl_exec($ch);
         $http_code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
