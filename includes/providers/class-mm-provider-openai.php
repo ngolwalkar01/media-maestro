@@ -87,7 +87,7 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
         $data = array(
             'image' => $cfile, 
             'prompt' => substr( $prompt, 0, 4000 ),
-            'model' => 'gpt-image-1.5', // Using highest supported model
+            'model' => 'dall-e-2', // Using highest supported model
             'n' => 1, 
             'size' => '1024x1024'
         );
