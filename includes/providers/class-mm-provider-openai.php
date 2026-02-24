@@ -59,7 +59,7 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
     }
 
     /**
-     * Product Placement (Reference Image to new scene using gpt-image-1.5)
+     * Product Placement (Reference Image to new scene using dall-e-2)
      */
     public function product_placement( $source_path, $prompt, $options = array() ) {
         if ( empty( $this->api_key ) ) {
@@ -68,6 +68,12 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
 
         if ( empty( $prompt ) ) {
             return new WP_Error( 'missing_prompt', 'A prompt is required for Product Placement.' );
+        }
+
+        // DALL-E 2 strictly requires PNG files for edits
+        $mime_type = mime_content_type( $source_path );
+        if ( $mime_type !== 'image/png' ) {
+            return new WP_Error( 'invalid_format', 'OpenAI DALL-E 2 edits only support PNG images. Please use a PNG image instead of ' . $mime_type );
         }
 
         // The correct endpoint for editing/reference images is /v1/images/edits
@@ -82,19 +88,20 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
             'Content-Type: multipart/form-data' 
         ));
         
-        $cfile = new CURLFile($source_path);
+        // Pass the mime type to CURLFile so the API knows what it is
+        $cfile = new CURLFile( $source_path, $mime_type, wp_basename( $source_path ) );
         
         $data = array(
             'image' => $cfile, 
             'prompt' => substr( $prompt, 0, 4000 ),
-            'model' => 'dall-e-2', // Using highest supported model
+            'model' => 'dall-e-2', 
             'n' => 1, 
             'size' => '1024x1024'
         );
         
         curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
         
-        error_log( "MM_OPENAI: Requesting Product Placement with gpt-image-1.5 on /v1/images/edits API..." );
+        error_log( "MM_OPENAI: Requesting Product Placement with dall-e-2 on /v1/images/edits API..." );
         
         $result = curl_exec($ch);
         $http_code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
