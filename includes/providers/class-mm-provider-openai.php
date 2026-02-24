@@ -72,47 +72,32 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
 
         $url = 'https://api.openai.com/v1/images';
         
-        $type = mime_content_type( $source_path );
-        $data = file_get_contents( $source_path );
-        $base64 = base64_encode( $data );
-        $data_url = 'data:' . $type . ';base64,' . $base64;
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Authorization: Bearer ' . $this->api_key,
+            'Content-Type: multipart/form-data' 
+        ));
         
-        $body = array(
+        $cfile = new CURLFile($source_path);
+        
+        $data = array(
+            'image' => $cfile, 
+            'prompt' => substr( $prompt, 0, 4000 ),
             'model' => 'gpt-image-1',
-            'prompt' => array(
-                array(
-                    'type' => 'text',
-                    'text' => $prompt
-                ),
-                array(
-                    'type' => 'image_url',
-                    'image_url' => array(
-                        'url' => $data_url
-                    )
-                )
-            ),
+            'n' => 1, 
             'size' => '1024x1024'
         );
         
-        $args = array(
-            'headers' => array(
-                'Authorization' => 'Bearer ' . $this->api_key,
-                'Content-Type'  => 'application/json'
-            ),
-            'body'    => json_encode( $body ),
-            'timeout' => 60
-        );
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
         
-        error_log( "MM_OPENAI: Requesting Product Placement with gpt-image-1 on /v1/images API..." );
+        error_log( "MM_OPENAI: Requesting Product Placement with gpt-image-1 on /v1/images API using multipart/form-data..." );
         
-        $response = wp_remote_post( $url, $args );
-
-        if ( is_wp_error( $response ) ) {
-            return $response;
-        }
-
-        $http_code = wp_remote_retrieve_response_code( $response );
-        $result = wp_remote_retrieve_body( $response );
+        $result = curl_exec($ch);
+        $http_code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+        curl_close($ch);
         
         if ( $http_code !== 200 ) {
              error_log( "MM_OPENAI: Product Placement Error ($http_code): $result" );
