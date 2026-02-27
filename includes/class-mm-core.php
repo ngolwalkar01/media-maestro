@@ -232,11 +232,7 @@ class Media_Maestro_Core {
         $job_id      = $job_manager->create_job( $attachment_id, 'auto_tag_image', array() );
         
         if ( ! is_wp_error( $job_id ) ) {
-            error_log( "MM_CORE: Scheduled auto-tagging job $job_id for attachment $attachment_id" );
-            
             // DEBUGGING BYPASS: Process it immediately on the same request instead of waiting for Action Scheduler
-            // This will make the media upload slightly slower but guarantees the code runs immediately.
-            error_log( "MM_CORE: DEBUG MODE - Processing job $job_id synchronously..." );
             require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/jobs/class-mm-worker.php';
             $worker = new Media_Maestro_Worker();
             $worker->process_job( $job_id );
@@ -308,8 +304,11 @@ class Media_Maestro_Core {
         }
 
         $tags = get_post_meta( $post_id, '_mm_ai_tags', true );
+        $error = get_post_meta( $post_id, '_mm_ai_tags_error', true );
         
-        if ( ! empty( $tags ) ) {
+        if ( ! empty( $error ) ) {
+            echo '<div style="color:#ef4444; font-size:11px; margin-top:4px;"><strong>AI Error:</strong> ' . esc_html( $error ) . '</div>';
+        } elseif ( ! empty( $tags ) ) {
             // Explode by comma to style each tag nicely in the UI
             $tag_array = explode( ',', $tags );
             echo '<div class="mm-ai-tags-container" style="display:flex; flex-wrap:wrap; gap:4px;">';
@@ -323,10 +322,6 @@ class Media_Maestro_Core {
         } else {
             // Check if there is a pending job
             $job_manager = new Media_Maestro_Job_Manager();
-            $processing_job = false;
-            
-            // This is slightly inefficient as we query all posts to find any job pointing to this source_id 
-            // but it's acceptable for the admin UI list view when debugging.
             $jobs = get_posts( array(
                 'post_type'      => 'mm_job',
                 'posts_per_page' => 1,

@@ -79,16 +79,18 @@ class Media_Maestro_Worker {
                          $result_path = $provider->regenerate( $source_path, $prompt, $strength );
                          break;
                 }
-            } elseif ( $operation === 'auto_tag_image' && method_exists( $provider, 'analyze_and_tag' ) ) {
+             } elseif ( $operation === 'auto_tag_image' && method_exists( $provider, 'analyze_and_tag' ) ) {
                 // Auto Tagging is a metadata operation, not an image generation operation.
                 $tags = $provider->analyze_and_tag( $source_id, $source_path );
                 
                 if ( is_wp_error( $tags ) ) {
+                    update_post_meta( $source_id, '_mm_ai_tags_error', $tags->get_error_message() );
                     $this->fail_job( $job_id, $tags->get_error_message() );
                     return;
                 }
                 
-                // Job complete, no new attachment needed.
+                // Job complete, clears any old errors.
+                delete_post_meta( $source_id, '_mm_ai_tags_error' );
                 update_post_meta( $job_id, '_mm_status', 'completed' );
                 return;
             } else {
