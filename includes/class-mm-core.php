@@ -205,6 +205,10 @@ class Media_Maestro_Core {
         // Modify search queries in the admin to look at our custom AI tags meta
         if ( is_admin() ) {
             add_filter( 'posts_search', array( $this, 'smart_media_search' ), 10, 2 );
+            
+            // Add custom column to Media Library list view
+            add_filter( 'manage_media_columns', array( $this, 'add_ai_tags_column' ) );
+            add_action( 'manage_media_custom_column', array( $this, 'render_ai_tags_column' ), 10, 2 );
         }
     }
 
@@ -272,6 +276,76 @@ class Media_Maestro_Core {
         $search = preg_replace( '/\)\s*\)\s*$/', $meta_search . '))', $search );
 
         return $search;
+    }
+
+    /**
+     * Add 'AI Tags' column to Media Library.
+     *
+     * @param array $columns Existing columns.
+     * @return array Modified columns.
+     */
+    public function add_ai_tags_column( $columns ) {
+        $columns['mm_ai_tags'] = 'AI Tags';
+        return $columns;
+    }
+
+    /**
+     * Render the 'AI Tags' column content.
+     *
+     * @param string $column_name Column name.
+     * @param int    $post_id     Attachment ID.
+     */
+    public function render_ai_tags_column( $column_name, $post_id ) {
+        if ( 'mm_ai_tags' !== $column_name ) {
+            return;
+        }
+
+        $tags = get_post_meta( $post_id, '_mm_ai_tags', true );
+        
+        if ( ! empty( $tags ) ) {
+            // Explode by comma to style each tag nicely in the UI
+            $tag_array = explode( ',', $tags );
+            echo '<div class="mm-ai-tags-container" style="display:flex; flex-wrap:wrap; gap:4px;">';
+            foreach ( $tag_array as $tag ) {
+                $tag_clean = trim( $tag );
+                if ( ! empty( $tag_clean ) ) {
+                    echo '<span style="background:#e5e7eb; color:#374151; font-size:11px; padding:2px 6px; border-radius:4px; border:1px solid #d1d5db;">' . esc_html( $tag_clean ) . '</span>';
+                }
+            }
+            echo '</div>';
+        } else {
+            // Check if there is a pending job
+            $job_manager = new Media_Maestro_Job_Manager();
+            $processing_job = false;
+            
+            // This is slightly inefficient as we query all posts to find any job pointing to this source_id 
+            // but it's acceptable for the admin UI list view when debugging.
+            $jobs = get_posts( array(
+                'post_type'      => 'mm_job',
+                'posts_per_page' => 1,
+                'meta_query'     => array(
+                    array(
+                        'key'   => '_mm_source_id',
+                        'value' => $post_id,
+                    ),
+                    array(
+                        'key'   => '_mm_operation',
+                        'value' => 'auto_tag_image',
+                    ),
+                    array(
+                        'key'     => '_mm_status',
+                        'value'   => array( 'pending', 'processing' ),
+                        'compare' => 'IN'
+                    )
+                )
+            ) );
+            
+            if ( ! empty( $jobs ) ) {
+                echo '<span style="color:#fbbf24; font-size:12px;">&#8987; Tagging in progress...</span>';
+            } else {
+                echo '<span style="color:#9ca3af; font-size:12px;">No tags</span>';
+            }
+        }
     }
 
     /**
