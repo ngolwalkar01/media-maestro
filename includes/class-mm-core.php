@@ -233,6 +233,13 @@ class Media_Maestro_Core {
         
         if ( ! is_wp_error( $job_id ) ) {
             error_log( "MM_CORE: Scheduled auto-tagging job $job_id for attachment $attachment_id" );
+            
+            // DEBUGGING BYPASS: Process it immediately on the same request instead of waiting for Action Scheduler
+            // This will make the media upload slightly slower but guarantees the code runs immediately.
+            error_log( "MM_CORE: DEBUG MODE - Processing job $job_id synchronously..." );
+            require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/jobs/class-mm-worker.php';
+            $worker = new Media_Maestro_Worker();
+            $worker->process_job( $job_id );
         }
     }
 
