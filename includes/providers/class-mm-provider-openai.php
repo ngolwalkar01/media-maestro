@@ -551,6 +551,8 @@ Return ONLY a raw JSON object (no markdown formatting, no code blocks) with the 
 
         return new WP_Error( 'analysis_failed', 'Could not analyze image.' );
     }
+
+    /**
      * Generate image using DALL-E 3.
      */
     private function generate_image( $prompt ) {
