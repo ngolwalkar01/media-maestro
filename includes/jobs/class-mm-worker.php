@@ -54,55 +54,51 @@ class Media_Maestro_Worker {
 
         // Execute Operation
         // Execute Operation
-        if ( method_exists( $provider, $operation ) ) {
-            $params = isset( $job['params'] ) ? $job['params'] : array();
-            $prompt = isset( $params['prompt'] ) ? $params['prompt'] : '';
-            $strength = isset( $params['strength'] ) ? $params['strength'] : null;
-            
-            // Pass standard args: path, prompt, (optional strength/options)
-            // Note: Different methods have different signatures.
-            // We can unify them or just switch for mapped ones.
-            // Let's use specific mapping for known ones + magic fallback?
-            // Actually, dynamic call might be risky if signatures vary slightly.
-            // Let's use a hybrid:
-            
-            if ( in_array( $operation, array( 'remove_background', 'style_transfer', 'regenerate' ) ) ) {
-                // ... legacy ...
-                switch ( $operation ) {
-                    case 'remove_background':
-                         $result_path = $provider->remove_background( $source_path );
-                         break;
-                    case 'style_transfer':
-                         $result_path = $provider->style_transfer( $source_path, $prompt );
-                         break;
-                    case 'regenerate':
-                         $result_path = $provider->regenerate( $source_path, $prompt, $strength );
-                         break;
-                }
-             } elseif ( $operation === 'auto_tag_image' && method_exists( $provider, 'analyze_and_tag' ) ) {
-                // Auto Tagging is a metadata operation, not an image generation operation.
-                $tags = $provider->analyze_and_tag( $source_id, $source_path );
-                
-                if ( is_wp_error( $tags ) ) {
-                    update_post_meta( $source_id, '_mm_ai_tags_error', $tags->get_error_message() );
-                    $this->fail_job( $job_id, $tags->get_error_message() );
-                    return;
-                }
-                
-                // Job complete, clears any old errors.
-                delete_post_meta( $source_id, '_mm_ai_tags_error' );
-                update_post_meta( $job_id, '_mm_status', 'completed' );
+        if ( in_array( $operation, array( 'remove_background', 'style_transfer', 'regenerate' ) ) ) {
+            if ( ! method_exists( $provider, $operation ) ) {
+                $this->fail_job( $job_id, "Operation '$operation' not supported by this provider." );
                 return;
-            } else {
-                 // New Stability methods
-                 // Signature: ( $source_path, $prompt, $strength, $params )
-                 // We pass $params array so methods can extract extras like 'direction'.
-                 $result_path = $provider->$operation( $source_path, $prompt, $strength, $params );
             }
-
+            // ... legacy ...
+            switch ( $operation ) {
+                case 'remove_background':
+                     $result_path = $provider->remove_background( $source_path );
+                     break;
+                case 'style_transfer':
+                     $result_path = $provider->style_transfer( $source_path, $prompt );
+                     break;
+                case 'regenerate':
+                     $result_path = $provider->regenerate( $source_path, $prompt, $strength );
+                     break;
+            }
+         } elseif ( $operation === 'auto_tag_image' ) {
+            if ( ! method_exists( $provider, 'analyze_and_tag' ) ) {
+                $this->fail_job( $job_id, "Auto-tagging is not supported by this provider." );
+                return;
+            }
+            
+            // Auto Tagging is a metadata operation, not an image generation operation.
+            $tags = $provider->analyze_and_tag( $source_id, $source_path );
+            
+            if ( is_wp_error( $tags ) ) {
+                update_post_meta( $source_id, '_mm_ai_tags_error', $tags->get_error_message() );
+                $this->fail_job( $job_id, $tags->get_error_message() );
+                return;
+            }
+            
+            // Job complete, clears any old errors.
+            delete_post_meta( $source_id, '_mm_ai_tags_error' );
+            update_post_meta( $job_id, '_mm_status', 'completed' );
+            return;
         } else {
-             $this->fail_job( $job_id, "Operation '$operation' not supported by this provider." );
-             return;
+             if ( ! method_exists( $provider, $operation ) ) {
+                 $this->fail_job( $job_id, "Operation '$operation' not supported by this provider." );
+                 return;
+             }
+             // New Stability methods
+             // Signature: ( $source_path, $prompt, $strength, $params )
+             // We pass $params array so methods can extract extras like 'direction'.
+             $result_path = $provider->$operation( $source_path, $prompt, $strength, $params );
         }
 
         if ( is_wp_error( $result_path ) ) {
