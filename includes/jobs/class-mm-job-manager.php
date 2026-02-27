@@ -95,6 +95,54 @@ class Media_Maestro_Job_Manager {
         );
         register_post_type( self::CPT, $args );
 
+        // Add custom columns to the Job list
+        if ( is_admin() ) {
+            add_filter( 'manage_' . self::CPT . '_posts_columns', array( $this, 'set_custom_columns' ) );
+            add_action( 'manage_' . self::CPT . '_posts_custom_column', array( $this, 'render_custom_column' ), 10, 2 );
+        }
+    }
+
+    /**
+     * Set custom columns for the Job list.
+     */
+    public function set_custom_columns( $columns ) {
+        $columns['mm_operation'] = __( 'Operation', 'media-maestro' );
+        $columns['mm_source']    = __( 'Source Image', 'media-maestro' );
+        $columns['mm_status']    = __( 'Status', 'media-maestro' );
+        $columns['mm_error']     = __( 'Error Message', 'media-maestro' );
+        return $columns;
+    }
+
+    /**
+     * Render the custom columns for the Job list.
+     */
+    public function render_custom_column( $column, $post_id ) {
+        switch ( $column ) {
+            case 'mm_operation':
+                $op = get_post_meta( $post_id, '_mm_operation', true );
+                echo esc_html( $op );
+                break;
+            case 'mm_source':
+                $source_id = get_post_meta( $post_id, '_mm_source_id', true );
+                if ( $source_id ) {
+                    echo wp_get_attachment_image( $source_id, array( 50, 50 ) );
+                }
+                break;
+            case 'mm_status':
+                $status = get_post_meta( $post_id, '_mm_status', true );
+                $color  = '#6b7280'; // gray
+                if ( $status === 'completed' ) $color = '#10b981'; // green
+                if ( $status === 'failed' )    $color = '#ef4444'; // red
+                if ( $status === 'processing') $color = '#f59e0b'; // yellow
+                echo '<span style="color:' . $color . '; font-weight:bold;">' . esc_html( strtoupper( $status ) ) . '</span>';
+                break;
+            case 'mm_error':
+                $error = get_post_meta( $post_id, '_mm_error_message', true );
+                if ( $error ) {
+                    echo '<span style="color:#ef4444; font-size:12px;">' . esc_html( $error ) . '</span>';
+                }
+                break;
+        }
     }
 
     /**
