@@ -385,6 +385,116 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
     }
 
     /**
+     * Analyze image and extract tags for smart search.
+     * 
+     * @param int $attachment_id ID of the attachment.
+     * @param string $path Local path to the image file.
+     * @return true|WP_Error True on success, error on failure.
+     */
+    public function analyze_and_tag( $attachment_id, $path ) {
+        if ( empty( $this->api_key ) ) {
+            return new WP_Error( 'missing_api_key', 'OpenAI API Key is missing.' );
+        }
+
+        $type = mime_content_type( $path );
+        $data = file_get_contents( $path );
+        $base64 = base64_encode( $data );
+        $data_url = 'data:' . $type . ';base64,' . $base64;
+
+        $url = 'https://api.openai.com/v1/chat/completions';
+        
+        $system_prompt = "You are an expert AI image tagger for a media library search engine. 
+Analyze the provided image and extract highly relevant, concise keywords that a user might search for to find this image.
+Return ONLY a raw JSON object (no markdown formatting, no code blocks) with the following structure:
+{
+  \"objects\": [\"list\", \"of\", \"objects\"],
+  \"emotions\": [\"list\", \"of\", \"emotions\"],
+  \"scene_type\": \"string describing setting\",
+  \"categories\": [\"list\", \"of\", \"categories\"]
+}";
+
+        $body = array(
+            'model' => 'gpt-4o',
+            'messages' => array(
+                array(
+                    'role' => 'system',
+                    'content' => $system_prompt
+                ),
+                array(
+                    'role' => 'user',
+                    'content' => array(
+                        array(
+                            'type' => 'image_url',
+                            'image_url' => array(
+                                'url' => $data_url,
+                                'detail' => 'low' // Use low detail for faster/cheaper tagging
+                            )
+                        )
+                    )
+                )
+            ),
+            'max_tokens' => 300,
+            'response_format' => array( 'type' => 'json_object' )
+        );
+
+        $args = array(
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $this->api_key,
+                'Content-Type'  => 'application/json'
+            ),
+            'body'    => json_encode( $body ),
+            'timeout' => 60
+        );
+
+        error_log( "MM_OPENAI: Requesting AI Tags for attachment $attachment_id..." );
+        $response = wp_remote_post( $url, $args );
+
+        if ( is_wp_error( $response ) ) {
+            return $response;
+        }
+        
+        $code = wp_remote_retrieve_response_code( $response );
+        $body = wp_remote_retrieve_body( $response );
+        
+        if ( $code !== 200 ) {
+            error_log( "MM_OPENAI: Analyze Error ($code): $body" );
+            return new WP_Error( 'api_error', "OpenAI Error ($code): " . substr( $body, 0, 200 ) );
+        }
+
+        $json = json_decode( $body, true );
+
+        if ( ! empty( $json['choices'][0]['message']['content'] ) ) {
+            $content = $json['choices'][0]['message']['content'];
+            $tags_data = json_decode( $content, true );
+            
+            if ( json_last_error() === JSON_ERROR_NONE && is_array( $tags_data ) ) {
+                // Flatten all values into a single string for fast searching
+                $flattened_tags = array();
+                
+                array_walk_recursive( $tags_data, function( $value ) use ( &$flattened_tags ) {
+                    if ( is_string( $value ) ) {
+                        // Clean up the string slightly
+                        $cleaned = sanitize_text_field( strtolower( trim( $value ) ) );
+                        if ( ! empty( $cleaned ) ) {
+                            $flattened_tags[] = $cleaned;
+                        }
+                    }
+                });
+                
+                $searchable_string = implode( ', ', array_unique( $flattened_tags ) );
+                
+                if ( ! empty( $searchable_string ) ) {
+                    update_post_meta( $attachment_id, '_mm_ai_tags', $searchable_string );
+                    error_log( "MM_OPENAI: Saved tags for $attachment_id: " . substr( $searchable_string, 0, 100 ) );
+                    return true;
+                }
+            }
+        }
+
+        return new WP_Error( 'analysis_failed', 'Could not parse JSON tags from OpenAI response.' );
+    }
+
+    /**
      * Analyze image using GPT-4o.
      */
     private function analyze_image( $path ) {
@@ -441,8 +551,6 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
 
         return new WP_Error( 'analysis_failed', 'Could not analyze image.' );
     }
-
-    /**
      * Generate image using DALL-E 3.
      */
     private function generate_image( $prompt ) {

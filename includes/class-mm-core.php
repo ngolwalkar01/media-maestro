@@ -66,6 +66,7 @@ class Media_Maestro_Core {
         $this->define_public_hooks();
         $this->define_job_hooks();
         $this->define_rest_hooks();
+        $this->define_tagging_hooks();
     }
 
     /**
@@ -189,6 +190,88 @@ class Media_Maestro_Core {
             $controller = new Media_Maestro_REST_Controller();
             $controller->register_routes();
         } );
+    }
+
+    /**
+     * Register tagging hooks for auto-tagging and smart search.
+     *
+     * @since 1.0.0
+     * @access private
+     */
+    private function define_tagging_hooks() {
+        // Trigger auto-tagging when an attachment is added
+        add_action( 'add_attachment', array( $this, 'trigger_auto_tagging' ) );
+
+        // Modify search queries in the admin to look at our custom AI tags meta
+        if ( is_admin() ) {
+            add_filter( 'posts_search', array( $this, 'smart_media_search' ), 10, 2 );
+        }
+    }
+
+    /**
+     * Trigger auto-tagging job for newly uploaded images if enabled.
+     *
+     * @param int $attachment_id ID of the newly uploaded attachment.
+     */
+    public function trigger_auto_tagging( $attachment_id ) {
+        if ( ! wp_attachment_is_image( $attachment_id ) ) {
+            return;
+        }
+
+        $enabled = get_option( 'mm_enable_auto_tagging', '0' );
+        if ( ! $enabled ) {
+            return;
+        }
+
+        // Create a background job to handle the tagging
+        $job_manager = new Media_Maestro_Job_Manager();
+        $job_id      = $job_manager->create_job( $attachment_id, 'auto_tag_image', array() );
+        
+        if ( ! is_wp_error( $job_id ) ) {
+            error_log( "MM_CORE: Scheduled auto-tagging job $job_id for attachment $attachment_id" );
+        }
+    }
+
+    /**
+     * Modify the search query to include our AI tags from post meta.
+     *
+     * @param string   $search The original search SQL string.
+     * @param WP_Query $wp_query The WP_Query instance.
+     * @return string Modified search SQL string.
+     */
+    public function smart_media_search( $search, $wp_query ) {
+        global $wpdb;
+
+        // Only modify if it's a search query 
+        if ( empty( $search ) || ! $wp_query->is_search() ) {
+            return $search;
+        }
+
+        // We only care if we are querying attachments (Media Library)
+        if ( $wp_query->get( 'post_type' ) !== 'attachment' && $wp_query->get( 'post_type' ) !== 'any' ) {
+            return $search;
+        }
+
+        $search_term = $wp_query->query_vars['s'];
+        
+        if ( empty( $search_term ) ) {
+            return $search;
+        }
+
+        // Add a LIKE clause for our custom meta key _mm_ai_tags
+        // The original $search usually looks like: AND (((wp_posts.post_title LIKE '%...%') OR (wp_posts.post_content LIKE '%...%')))
+        
+        $search_term_like = '%' . $wpdb->esc_like( $search_term ) . '%';
+        
+        $meta_search = $wpdb->prepare(
+            " OR {$wpdb->posts}.ID IN ( SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_mm_ai_tags' AND meta_value LIKE %s ) ",
+            $search_term_like
+        );
+
+        // Inject our OR clause right before the closing parenthesis of the main search block
+        $search = preg_replace( '/\)\s*\)\s*$/', $meta_search . '))', $search );
+
+        return $search;
     }
 
     /**

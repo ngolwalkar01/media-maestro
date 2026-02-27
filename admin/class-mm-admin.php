@@ -210,12 +210,21 @@ class Media_Maestro_Admin {
         register_setting( $this->plugin_name, 'mm_api_key' );
         register_setting( $this->plugin_name, 'mm_gemini_api_key' );
         register_setting( $this->plugin_name, 'mm_stability_api_key' );
+        register_setting( $this->plugin_name, 'mm_enable_auto_tagging' );
         
         add_settings_section(
             'mm_general_section',
             'General Settings',
             null,
             $this->plugin_name
+        );
+
+        add_settings_field(
+            'mm_enable_auto_tagging',
+            'Enable AI Auto-Tagging',
+            array( $this, 'auto_tagging_callback' ),
+            $this->plugin_name,
+            'mm_general_section'
         );
 
         add_settings_field(
@@ -248,6 +257,12 @@ class Media_Maestro_Admin {
             $this->plugin_name,
             'mm_general_section'
         );
+    }
+
+    public function auto_tagging_callback() {
+        $enabled = get_option( 'mm_enable_auto_tagging', '0' );
+        echo '<label><input type="checkbox" name="mm_enable_auto_tagging" value="1" ' . checked( 1, $enabled, false ) . '> Automatically tag images on upload (requires OpenAI API key)</label>';
+        echo '<p class="description">When enabled, new image uploads will be analyzed by AI to detect objects, emotions, and categories, making them searchable in the Media Library.</p>';
     }
 
     public function api_key_callback() {
