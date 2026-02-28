@@ -44,50 +44,25 @@
         },
 
         onOperationChange: function () {
-            var op = this.$('.mm-operation-select').val();
-
-            // Show/Hide Strength
-            // Some operations need strength
-            if (['style_transfer', 'sketch', 'structure', 'generate_sd3'].includes(op)) {
-                this.$('.mm-strength-label').show();
-            } else {
-                this.$('.mm-strength-label').hide();
-            }
-
-            // Show/Hide Prompt
-            // Remove BG and Upscale Fast usually don't need prompt
-            if (['remove_bg', 'upscale_fast', 'upscale_conservative'].includes(op)) {
-                this.$('.mm-prompt-label').hide();
-            } else {
-                this.$('.mm-prompt-label').show();
-            }
-            // Show/Hide Direction
-            if (op === 'outpaint') {
-                this.$('.mm-direction-label').show();
-            } else {
-                this.$('.mm-direction-label').hide();
-            }
+            // All current operations (product_placement, style_transfer) require a prompt.
+            this.$('.mm-prompt-label').show();
         },
 
         runJob: function (e) {
             e.preventDefault();
             var op = this.$('.mm-operation-select').val();
             var prompt = this.$('.mm-prompt-input').val();
-            var strength = this.$('.mm-strength-input').val();
-            var direction = this.$('.mm-direction-select').val();
 
             // Validation
-            if (!['remove_bg', 'upscale_fast', 'upscale_conservative', 'erase'].includes(op) && !prompt) {
+            if (!prompt) {
                 alert('Please enter a prompt for this operation.');
                 return;
             }
 
-            console.log('Running Job:', op, prompt, strength, direction);
+            console.log('Running Job:', op, 'Prompt:', prompt);
 
             this.startJob(op, {
-                prompt: prompt,
-                strength: strength,
-                direction: direction
+                prompt: prompt
             });
         },
 

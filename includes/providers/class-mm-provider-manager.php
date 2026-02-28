@@ -38,12 +38,9 @@ class Media_Maestro_Provider_Manager {
     /**
      * Constructor.
      */
-    private function __construct() {
+    public function __construct() {
         // Register default providers
-        $this->register_provider( new Media_Maestro_Provider_Mock() );
         $this->register_provider( new Media_Maestro_Provider_OpenAI() );
-        $this->register_provider( new Media_Maestro_Provider_Gemini() );
-        $this->register_provider( new Media_Maestro_Provider_Stability() );
     }
 
     /**
@@ -84,9 +81,6 @@ class Media_Maestro_Provider_Manager {
      * @return Media_Maestro_Provider_Interface|WP_Error Default provider.
      */
     public function get_default_provider() {
-        // For MVP, just return the Mock provider or the first one
-        // Later, pull from settings
-        $provider_id = get_option( 'mm_provider', 'mock' );
-        return $this->get_provider( $provider_id );
+        return $this->get_provider( 'openai' );
     }
 }

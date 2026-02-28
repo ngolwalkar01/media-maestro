@@ -53,25 +53,19 @@ class Media_Maestro_Worker {
         $result_path = false;
 
         // Execute Operation
+        $params = isset( $job['params'] ) && is_array( $job['params'] ) ? $job['params'] : array();
+        $prompt = isset( $params['prompt'] ) ? $params['prompt'] : '';
+
         // Execute Operation
-        if ( in_array( $operation, array( 'remove_background', 'style_transfer', 'regenerate' ) ) ) {
+        if ( in_array( $operation, array( 'style_transfer', 'product_placement' ) ) ) {
             if ( ! method_exists( $provider, $operation ) ) {
                 $this->fail_job( $job_id, "Operation '$operation' not supported by this provider." );
                 return;
             }
-            // ... legacy ...
-            switch ( $operation ) {
-                case 'remove_background':
-                     $result_path = $provider->remove_background( $source_path );
-                     break;
-                case 'style_transfer':
-                     $result_path = $provider->style_transfer( $source_path, $prompt );
-                     break;
-                case 'regenerate':
-                     $result_path = $provider->regenerate( $source_path, $prompt, $strength );
-                     break;
-            }
-         } elseif ( $operation === 'auto_tag_image' ) {
+            
+            $result_path = $provider->$operation( $source_path, $prompt, $params );
+            
+        } elseif ( $operation === 'auto_tag_image' ) {
             if ( ! method_exists( $provider, 'analyze_and_tag' ) ) {
                 $this->fail_job( $job_id, "Auto-tagging is not supported by this provider." );
                 return;
@@ -90,6 +84,7 @@ class Media_Maestro_Worker {
             delete_post_meta( $source_id, '_mm_ai_tags_error' );
             update_post_meta( $job_id, '_mm_status', 'completed' );
             return;
+            
         } elseif ( $operation === 'auto_seo_image' ) {
             if ( ! method_exists( $provider, 'analyze_and_seo' ) ) {
                 $this->fail_job( $job_id, "Auto-SEO is not supported by this provider." );
@@ -117,15 +112,10 @@ class Media_Maestro_Worker {
             delete_post_meta( $source_id, '_mm_ai_seo_error' );
             update_post_meta( $job_id, '_mm_status', 'completed' );
             return;
+            
         } else {
-             if ( ! method_exists( $provider, $operation ) ) {
-                 $this->fail_job( $job_id, "Operation '$operation' not supported by this provider." );
-                 return;
-             }
-             // New Stability methods
-             // Signature: ( $source_path, $prompt, $strength, $params )
-             // We pass $params array so methods can extract extras like 'direction'.
-             $result_path = $provider->$operation( $source_path, $prompt, $strength, $params );
+             $this->fail_job( $job_id, "Operation '$operation' is unknown or not supported." );
+             return;
         }
 
         if ( is_wp_error( $result_path ) ) {
