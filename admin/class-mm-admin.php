@@ -211,6 +211,7 @@ class Media_Maestro_Admin {
         register_setting( $this->plugin_name, 'mm_gemini_api_key' );
         register_setting( $this->plugin_name, 'mm_stability_api_key' );
         register_setting( $this->plugin_name, 'mm_enable_auto_tagging' );
+        register_setting( $this->plugin_name, 'mm_enable_auto_seo' );
         
         add_settings_section(
             'mm_general_section',
@@ -223,6 +224,14 @@ class Media_Maestro_Admin {
             'mm_enable_auto_tagging',
             'Enable AI Auto-Tagging',
             array( $this, 'auto_tagging_callback' ),
+            $this->plugin_name,
+            'mm_general_section'
+        );
+
+        add_settings_field(
+            'mm_enable_auto_seo',
+            'Enable AI Auto Image SEO',
+            array( $this, 'auto_seo_callback' ),
             $this->plugin_name,
             'mm_general_section'
         );
@@ -263,6 +272,12 @@ class Media_Maestro_Admin {
         $enabled = get_option( 'mm_enable_auto_tagging', '0' );
         echo '<label><input type="checkbox" name="mm_enable_auto_tagging" value="1" ' . checked( 1, $enabled, false ) . '> Automatically tag images on upload (requires OpenAI API key)</label>';
         echo '<p class="description">When enabled, new image uploads will be analyzed by AI to detect objects, emotions, and categories, making them searchable in the Media Library.</p>';
+    }
+
+    public function auto_seo_callback() {
+        $enabled = get_option( 'mm_enable_auto_seo', '0' );
+        echo '<label><input type="checkbox" name="mm_enable_auto_seo" value="1" ' . checked( 1, $enabled, false ) . '> Automatically generate SEO metadata on upload (requires OpenAI API key)</label>';
+        echo '<p class="description">When enabled, AI will generate a highly optimized Alt text, Title, Caption, and Description based on the image content.</p>';
     }
 
     public function api_key_callback() {

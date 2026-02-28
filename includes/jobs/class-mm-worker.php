@@ -90,6 +90,33 @@ class Media_Maestro_Worker {
             delete_post_meta( $source_id, '_mm_ai_tags_error' );
             update_post_meta( $job_id, '_mm_status', 'completed' );
             return;
+        } elseif ( $operation === 'auto_seo_image' ) {
+            if ( ! method_exists( $provider, 'analyze_and_seo' ) ) {
+                $this->fail_job( $job_id, "Auto-SEO is not supported by this provider." );
+                return;
+            }
+            
+            $product_context = '';
+            // If WooCommerce is active, we can check if the parent post is a product
+            $parent_id = wp_get_post_parent_id( $source_id );
+            if ( $parent_id ) {
+                $parent_post = get_post( $parent_id );
+                if ( $parent_post && $parent_post->post_type === 'product' ) {
+                    $product_context = $parent_post->post_title;
+                }
+            }
+            
+            $seo_result = $provider->analyze_and_seo( $source_id, $source_path, $product_context );
+            
+            if ( is_wp_error( $seo_result ) ) {
+                update_post_meta( $source_id, '_mm_ai_seo_error', $seo_result->get_error_message() );
+                $this->fail_job( $job_id, $seo_result->get_error_message() );
+                return;
+            }
+            
+            delete_post_meta( $source_id, '_mm_ai_seo_error' );
+            update_post_meta( $job_id, '_mm_status', 'completed' );
+            return;
         } else {
              if ( ! method_exists( $provider, $operation ) ) {
                  $this->fail_job( $job_id, "Operation '$operation' not supported by this provider." );

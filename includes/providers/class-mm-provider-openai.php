@@ -495,6 +495,129 @@ Return ONLY a raw JSON object (no markdown formatting, no code blocks) with the 
     }
 
     /**
+     * Analyze image and extract SEO metadata (Alt text, Title, Caption, Description)
+     * 
+     * @param int $attachment_id ID of the attachment.
+     * @param string $path Local path to the image file.
+     * @param string $product_context Optional context (e.g., WooCommerce Product Title)
+     * @return true|WP_Error True on success, error on failure.
+     */
+    public function analyze_and_seo( $attachment_id, $path, $product_context = '' ) {
+        if ( empty( $this->api_key ) ) {
+            return new WP_Error( 'missing_api_key', 'OpenAI API Key is missing.' );
+        }
+
+        $type = mime_content_type( $path );
+        $data = file_get_contents( $path );
+        $base64 = base64_encode( $data );
+        $data_url = 'data:' . $type . ';base64,' . $base64;
+
+        $url = 'https://api.openai.com/v1/chat/completions';
+        
+        $context_str = '';
+        if ( ! empty( $product_context ) ) {
+            $context_str = " This image belongs to a product named: '" . $product_context . "'. Incorporate this context naturally if relevant.";
+        }
+        
+        $system_prompt = "You are an expert SEO specialist for a modern website.
+Analyze the provided image and generate perfect SEO metadata." . $context_str . "
+Return ONLY a raw JSON object (no markdown formatting, no code blocks) with the following structure:
+{
+  \"alt_text\": \"A concise, descriptive alt text for visually impaired users and SEO (under 125 chars)\",
+  \"title\": \"A clean, readable, hyphen-separated title suitable for image optimization without file extensions (e.g. 'handcrafted-leather-brown-wallet')\",
+  \"caption\": \"A brief, engaging caption that could be displayed under the image\",
+  \"description\": \"A detailed, rich description of the image content for the media attachment page\"
+}";
+
+        $body = array(
+            'model' => 'gpt-4o',
+            'messages' => array(
+                array(
+                    'role' => 'system',
+                    'content' => $system_prompt
+                ),
+                array(
+                    'role' => 'user',
+                    'content' => array(
+                        array(
+                            'type' => 'image_url',
+                            'image_url' => array(
+                                'url' => $data_url,
+                                'detail' => 'auto'
+                            )
+                        )
+                    )
+                )
+            ),
+            'max_tokens' => 500,
+            'response_format' => array( 'type' => 'json_object' )
+        );
+
+        $args = array(
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $this->api_key,
+                'Content-Type'  => 'application/json'
+            ),
+            'body'    => json_encode( $body ),
+            'timeout' => 60
+        );
+
+        error_log( "MM_OPENAI: Requesting AI SEO for attachment $attachment_id..." );
+        $response = wp_remote_post( $url, $args );
+
+        if ( is_wp_error( $response ) ) {
+            return $response;
+        }
+        
+        $code = wp_remote_retrieve_response_code( $response );
+        $body = wp_remote_retrieve_body( $response );
+        
+        if ( $code !== 200 ) {
+            return new WP_Error( 'api_error', "OpenAI Error ($code): " . substr( $body, 0, 200 ) );
+        }
+
+        $json = json_decode( $body, true );
+
+        if ( ! empty( $json['choices'][0]['message']['content'] ) ) {
+            $content = $json['choices'][0]['message']['content'];
+            $seo_data = json_decode( $content, true );
+            
+            if ( json_last_error() === JSON_ERROR_NONE && is_array( $seo_data ) ) {
+                
+                // Update attachment fields
+                $update_args = array(
+                    'ID'           => $attachment_id,
+                );
+                
+                if ( ! empty( $seo_data['title'] ) ) {
+                    $update_args['post_title'] = sanitize_text_field( $seo_data['title'] );
+                }
+                if ( ! empty( $seo_data['caption'] ) ) {
+                    $update_args['post_excerpt'] = sanitize_text_field( $seo_data['caption'] );
+                }
+                if ( ! empty( $seo_data['description'] ) ) {
+                    $update_args['post_content'] = sanitize_textarea_field( $seo_data['description'] );
+                }
+                
+                // Only call wp_update_post if there's actually something to update
+                if ( count( $update_args ) > 1 ) {
+                    wp_update_post( $update_args );
+                }
+                
+                // Update Alt Text (stored as post meta)
+                if ( ! empty( $seo_data['alt_text'] ) ) {
+                    update_post_meta( $attachment_id, '_wp_attachment_image_alt', sanitize_text_field( $seo_data['alt_text'] ) );
+                }
+
+                error_log( "MM_OPENAI: Saved SEO data for $attachment_id." );
+                return true;
+            }
+        }
+
+        return new WP_Error( 'seo_failed', 'Could not parse JSON SEO data from OpenAI response.' );
+    }
+
+    /**
      * Analyze image using GPT-4o.
      */
     private function analyze_image( $path ) {

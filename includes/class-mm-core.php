@@ -200,7 +200,7 @@ class Media_Maestro_Core {
      */
     private function define_tagging_hooks() {
         // Trigger auto-tagging when an attachment is added
-        add_action( 'add_attachment', array( $this, 'trigger_auto_tagging' ) );
+        add_action( 'add_attachment', array( $this, 'trigger_auto_ai_processing' ) );
 
         // Modify search queries in the admin to look at our custom AI tags meta
         if ( is_admin() ) {
@@ -213,30 +213,45 @@ class Media_Maestro_Core {
     }
 
     /**
-     * Trigger auto-tagging job for newly uploaded images if enabled.
+     * Trigger AI jobs for newly uploaded images if enabled.
      *
      * @param int $attachment_id ID of the newly uploaded attachment.
      */
-    public function trigger_auto_tagging( $attachment_id ) {
+    public function trigger_auto_ai_processing( $attachment_id ) {
         if ( ! wp_attachment_is_image( $attachment_id ) ) {
             return;
         }
 
-        $enabled = get_option( 'mm_enable_auto_tagging', '0' );
-        if ( ! $enabled ) {
-            return;
+        $job_manager = new Media_Maestro_Job_Manager();
+        $process_sync = false; // For debugging bypass
+
+        // 1. Auto Tagging
+        if ( get_option( 'mm_enable_auto_tagging', '0' ) ) {
+            $tag_job_id = $job_manager->create_job( $attachment_id, 'auto_tag_image', array() );
+            if ( ! is_wp_error( $tag_job_id ) ) {
+                $process_sync = true;
+                $this->maybe_process_sync( $tag_job_id );
+            }
         }
 
-        // Create a background job to handle the tagging
-        $job_manager = new Media_Maestro_Job_Manager();
-        $job_id      = $job_manager->create_job( $attachment_id, 'auto_tag_image', array() );
-        
-        if ( ! is_wp_error( $job_id ) ) {
-            // DEBUGGING BYPASS: Process it immediately on the same request instead of waiting for Action Scheduler
-            require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/jobs/class-mm-worker.php';
-            $worker = new Media_Maestro_Worker();
-            $worker->process_job( $job_id );
+        // 2. Auto SEO
+        if ( get_option( 'mm_enable_auto_seo', '0' ) ) {
+            $seo_job_id = $job_manager->create_job( $attachment_id, 'auto_seo_image', array() );
+            if ( ! is_wp_error( $seo_job_id ) ) {
+                $process_sync = true;
+                $this->maybe_process_sync( $seo_job_id );
+            }
         }
+    }
+
+    /**
+     * Temporary bypass to process jobs synchronously instead of waiting for cron.
+     */
+    private function maybe_process_sync( $job_id ) {
+        // DEBUGGING BYPASS: Process it immediately on the same request instead of waiting for Action Scheduler
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/jobs/class-mm-worker.php';
+        $worker = new Media_Maestro_Worker();
+        $worker->process_job( $job_id );
     }
 
     /**
