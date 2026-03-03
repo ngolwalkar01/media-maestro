@@ -5,17 +5,17 @@
  * This file is read by WordPress to generate the plugin information in the plugin
  * administrative area. This file also includes all of the plugin dependencies.
  *
- * @link              https://example.com
+ * @link              https://github.com/ngolwalkar01/media-maestro
  * @since             1.0.0
  * @package           Media_Maestro
  *
  * @wordpress-plugin
  * Plugin Name:       Media Maestro
- * Plugin URI:        https://example.com/plugin-name-contact
+ * Plugin URI:        https://github.com/ngolwalkar01/media-maestro
  * Description:       AI Media Studio for WordPress. Remove backgrounds, style transfer, and regenerate images directly in the Media Library.
  * Version:           1.0.0
- * Author:            Your Name
- * Author URI:        https://example.com
+ * Author:            Media Maestro Team
+ * Author URI:        https://github.com/ngolwalkar01/media-maestro
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain:       media-maestro
