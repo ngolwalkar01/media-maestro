@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
  * Provide a admin area view for the plugin
@@ -20,10 +21,11 @@
 
 	<form method="post" action="options.php">
 		<?php
-			settings_fields( 'media-maestro' );
+settings_fields( 'media-maestro' );
 			do_settings_sections( 'media-maestro' );
 			submit_button();
 		?>
 	</form>
 
 </div>
+

@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
  * The Job Manager handles the lifecycle of AI jobs.
@@ -208,3 +209,4 @@ class Media_Maestro_Job_Manager {
         );
     }
 }
+

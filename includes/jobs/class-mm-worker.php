@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
  * Worker Logic
@@ -192,3 +193,4 @@ class Media_Maestro_Worker {
         return $attach_id;
     }
 }
+

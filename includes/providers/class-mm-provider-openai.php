@@ -100,36 +100,52 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
             $mask_path = $auto_mask;
         }
 
-        $url = 'https://api.openai.com/v1/images/edits';
-
-        $ch = curl_init();
-        curl_setopt( $ch, CURLOPT_URL, $url );
-        curl_setopt( $ch, CURLOPT_POST, 1 );
-        curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1 );
-
-        // IMPORTANT: do NOT set Content-Type manually; let cURL create the boundary
-        curl_setopt( $ch, CURLOPT_HTTPHEADER, array(
-            'Authorization: Bearer ' . $this->api_key,
-        ) );
-
-        $data = array(
-            'image'  => new CURLFile( $prepared_image_path, 'image/png', wp_basename( $prepared_image_path ) ),
-            'mask'   => new CURLFile( $mask_path, 'image/png', wp_basename( $mask_path ) ),
-            'prompt' => substr( $prompt, 0, 4000 ),
-            'model'  => $model,
-            'n'      => 1,
-            'size'   => '1024x1024',
-            // If your setup supports it, you can try forcing URL:
-            // 'response_format' => 'url',
+        $boundary = wp_generate_password( 24, false, false );
+        $headers  = array(
+            'Authorization' => 'Bearer ' . $this->api_key,
+            'Content-Type'  => 'multipart/form-data; boundary=' . $boundary,
         );
 
-        curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
+        $payload = '';
 
-        error_log( "MM_OPENAI: Product Placement (model={$model}) using /v1/images/edits with mask..." );
+        // Helper to add a form field
+        $add_field = function( $name, $value ) use ( &$payload, $boundary ) {
+            $payload .= "--" . $boundary . "`r`n";
+            $payload .= "Content-Disposition: form-data; name=`"" . $name . "`"`r`n`r`n";
+            $payload .= $value . "`r`n";
+        };
 
-        $result = curl_exec( $ch );
-        $http_code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-        curl_close( $ch );
+        // Helper to add a file
+        $add_file = function( $name, $filepath, $filename, $mime ) use ( &$payload, $boundary ) {
+            $payload .= "--" . $boundary . "`r`n";
+            $payload .= "Content-Disposition: form-data; name=`"" . $name . "`"; filename=`"" . $filename . "`"`r`n";
+            $payload .= "Content-Type: " . $mime . "`r`n`r`n";
+            $payload .= file_get_contents( $filepath ) . "`r`n";
+        };
+
+        $add_file( 'image', $prepared_image_path, wp_basename( $prepared_image_path ), 'image/png' );
+        $add_file( 'mask', $mask_path, wp_basename( $mask_path ), 'image/png' );
+        $add_field( 'prompt', substr( $prompt, 0, 4000 ) );
+        $add_field( 'model', $model );
+        $add_field( 'n', '1' );
+        $add_field( 'size', '1024x1024' );
+
+        $payload .= "--" . $boundary . "--`r`n";
+
+        error_log( "MM_OPENAI: Product Placement (model={$model}) using /v1/images/edits with wp_remote_post..." );
+
+        $response = wp_remote_post( 'https://api.openai.com/v1/images/edits', array(
+            'headers' => $headers,
+            'body'    => $payload,
+            'timeout' => 60,
+        ) );
+
+        if ( is_wp_error( $response ) ) {
+            return new WP_Error( 'api_error', "OpenAI HTTP Error: " . $response->get_error_message() );
+        }
+
+        $http_code = wp_remote_retrieve_response_code( $response );
+        $result    = wp_remote_retrieve_body( $response );
 
         if ( $http_code !== 200 ) {
             error_log( "MM_OPENAI: Product Placement Error ($http_code): $result" );
@@ -761,3 +777,4 @@ Return ONLY a raw JSON object (no markdown formatting, no code blocks) with the 
     }
 
 }
+

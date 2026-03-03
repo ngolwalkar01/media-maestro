@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
  * REST API Controller
@@ -113,7 +114,8 @@ class Media_Maestro_REST_Controller extends WP_REST_Controller {
                 'required'          => true,
                 'validate_callback' => function( $param, $request, $key ) {
                     return is_numeric( $param );
-                }
+                },
+                'sanitize_callback' => 'absint',
             ),
             'operation' => array(
                 'description'       => 'Operation to perform',
@@ -123,12 +125,24 @@ class Media_Maestro_REST_Controller extends WP_REST_Controller {
                     'style_transfer', 
                     'product_placement'
                 ),
+                'sanitize_callback' => 'sanitize_text_field',
             ),
             'params' => array(
                 'description'       => 'Additional parameters',
                 'type'              => 'object',
                 'required'          => false,
                 'default'           => array(),
+                'sanitize_callback' => function( $param, $request, $key ) {
+                    if ( ! is_array( $param ) ) {
+                        return array();
+                    }
+                    $sanitized = array();
+                    foreach ( $param as $k => $v ) {
+                        // Assuming string params for now (prompt)
+                        $sanitized[ sanitize_key( $k ) ] = sanitize_textarea_field( $v );
+                    }
+                    return $sanitized;
+                }
             ),
         );
     }

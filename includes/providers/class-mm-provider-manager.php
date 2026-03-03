@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
  * Provider Manager
@@ -84,3 +85,4 @@ class Media_Maestro_Provider_Manager {
         return $this->get_provider( 'openai' );
     }
 }
+

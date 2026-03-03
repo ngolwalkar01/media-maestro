@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
  * Define the internationalization functionality
@@ -42,3 +43,4 @@ class Media_Maestro_i18n {
 	}
 
 }
+

@@ -1,4 +1,6 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) { exit; }
+
 /**
  * Fired during plugin activation
  *
@@ -36,3 +38,4 @@ class Media_Maestro_Activator {
 	}
 
 }
+

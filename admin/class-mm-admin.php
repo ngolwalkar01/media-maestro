@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
  * The admin-specific functionality of the plugin.
@@ -107,7 +108,7 @@ class Media_Maestro_Admin {
         wp_enqueue_script( $this->plugin_name . '-media-view', plugin_dir_url( __FILE__ ) . 'js/media-maestro-media-view.js', array( 'media-views' ), time() + 9, true );
         wp_localize_script( $this->plugin_name . '-media-view', 'mm_data', array(
             'nonce'   => wp_create_nonce( 'wp_rest' ),
-            'api_url' => get_rest_url( null, 'mm/v1/jobs' ),
+            'api_url' => esc_url_raw( rest_url( 'mm/v1/jobs' ) ),
         ) );
     }
 
@@ -174,9 +175,9 @@ class Media_Maestro_Admin {
      * Register settings.
      */
     public function register_settings() {
-        register_setting( $this->plugin_name, 'mm_api_key' );
-        register_setting( $this->plugin_name, 'mm_enable_auto_tagging' );
-        register_setting( $this->plugin_name, 'mm_enable_auto_seo' );
+        register_setting( $this->plugin_name, 'mm_api_key', array( 'sanitize_callback' => 'sanitize_text_field' ) );
+        register_setting( $this->plugin_name, 'mm_enable_auto_tagging', array( 'sanitize_callback' => 'absint' ) );
+        register_setting( $this->plugin_name, 'mm_enable_auto_seo', array( 'sanitize_callback' => 'absint' ) );
         
         add_settings_section(
             'mm_general_section',
@@ -212,20 +213,20 @@ class Media_Maestro_Admin {
 
     public function auto_tagging_callback() {
         $enabled = get_option( 'mm_enable_auto_tagging', '0' );
-        echo '<label><input type="checkbox" name="mm_enable_auto_tagging" value="1" ' . checked( 1, $enabled, false ) . '> Automatically tag images on upload (requires OpenAI API key)</label>';
-        echo '<p class="description">When enabled, new image uploads will be analyzed by AI to detect objects, emotions, and categories, making them searchable in the Media Library.</p>';
+        echo '<label><input type="checkbox" name="mm_enable_auto_tagging" value="1" ' . checked( 1, $enabled, false ) . '> ' . esc_html__( 'Automatically tag images on upload (requires OpenAI API key)', 'media-maestro' ) . '</label>';
+        echo '<p class="description">' . esc_html__( 'When enabled, new image uploads will be analyzed by AI to detect objects, emotions, and categories, making them searchable in the Media Library.', 'media-maestro' ) . '</p>';
     }
 
     public function auto_seo_callback() {
         $enabled = get_option( 'mm_enable_auto_seo', '0' );
-        echo '<label><input type="checkbox" name="mm_enable_auto_seo" value="1" ' . checked( 1, $enabled, false ) . '> Automatically generate SEO metadata on upload (requires OpenAI API key)</label>';
-        echo '<p class="description">When enabled, AI will generate a highly optimized Alt text, Title, Caption, and Description based on the image content.</p>';
+        echo '<label><input type="checkbox" name="mm_enable_auto_seo" value="1" ' . checked( 1, $enabled, false ) . '> ' . esc_html__( 'Automatically generate SEO metadata on upload (requires OpenAI API key)', 'media-maestro' ) . '</label>';
+        echo '<p class="description">' . esc_html__( 'When enabled, AI will generate a highly optimized Alt text, Title, Caption, and Description based on the image content.', 'media-maestro' ) . '</p>';
     }
 
     public function api_key_callback() {
         $api_key = get_option( 'mm_api_key' );
         echo '<input type="password" name="mm_api_key" value="' . esc_attr( $api_key ) . '" class="regular-text">';
-        echo '<p class="description">Enter your OpenAI API Key here.</p>';
+        echo '<p class="description">' . esc_html__( 'Enter your OpenAI API Key here.', 'media-maestro' ) . '</p>';
     }
 
     /**
@@ -248,7 +249,7 @@ class Media_Maestro_Admin {
     public function render_ai_metabox( $post ) {
         // Only show for images
         if ( ! wp_attachment_is_image( $post->ID ) ) {
-            echo '<p>AI tools available for images only.</p>';
+            echo '<p>' . esc_html__( 'AI tools available for images only.', 'media-maestro' ) . '</p>';
             return;
         }
 
@@ -256,13 +257,13 @@ class Media_Maestro_Admin {
         wp_localize_script( $this->plugin_name, 'mm_data', array(
             'attachment_id' => $post->ID,
             'nonce'         => wp_create_nonce( 'wp_rest' ),
-            'api_url'       => get_rest_url( null, 'mm/v1/jobs' ),
+            'api_url'       => esc_url_raw( rest_url( 'mm/v1/jobs' ) ),
         ) );
 
         echo '<div id="mm-ai-tools-container" class="mm-ai-tools-container">';
-        echo '<p><strong>Actions:</strong></p>';
-        echo '<button type="button" class="button button-secondary" id="mm-btn-remove-bg">Remove Background</button>';
-        echo '<button type="button" class="button button-secondary" id="mm-btn-style-transfer">Style Transfer</button>';
+        echo '<p><strong>' . esc_html__( 'Actions:', 'media-maestro' ) . '</strong></p>';
+        echo '<button type="button" class="button button-secondary" id="mm-btn-remove-bg">' . esc_html__( 'Remove Background', 'media-maestro' ) . '</button>';
+        echo '<button type="button" class="button button-secondary" id="mm-btn-style-transfer">' . esc_html__( 'Style Transfer', 'media-maestro' ) . '</button>';
         echo '<hr>';
         echo '<div id="mm-job-status"></div>';
         echo '</div>';

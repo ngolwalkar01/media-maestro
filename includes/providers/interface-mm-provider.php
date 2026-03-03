@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
  * Interface for AI Service Providers.
@@ -53,3 +54,4 @@ interface Media_Maestro_Provider_Interface {
      */
     public function regenerate( $image_path, $prompt, $strength, $options = array() );
 }
+
