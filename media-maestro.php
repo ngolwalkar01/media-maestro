@@ -36,7 +36,7 @@ define( 'MEDIA_MAESTRO_VERSION', '1.0.0' );
  * The code that runs during plugin activation.
  * This action is documented in includes/class-mm-activator.php
  */
-function mm_activate_media_maestro() {
+function media_maestro_activate() {
 	require_once plugin_dir_path( __FILE__ ) . 'includes/class-mm-activator.php';
 	Media_Maestro_Activator::activate();
 }
@@ -45,13 +45,13 @@ function mm_activate_media_maestro() {
  * The code that runs during plugin deactivation.
  * This action is documented in includes/class-mm-deactivator.php
  */
-function mm_deactivate_media_maestro() {
+function media_maestro_deactivate() {
 	require_once plugin_dir_path( __FILE__ ) . 'includes/class-mm-deactivator.php';
 	Media_Maestro_Deactivator::deactivate();
 }
 
-register_activation_hook( __FILE__, 'mm_activate_media_maestro' );
-register_deactivation_hook( __FILE__, 'mm_deactivate_media_maestro' );
+register_activation_hook( __FILE__, 'media_maestro_activate' );
+register_deactivation_hook( __FILE__, 'media_maestro_deactivate' );
 
 /**
  * The core plugin class that is used to define internationalization,
@@ -68,10 +68,10 @@ require plugin_dir_path( __FILE__ ) . 'includes/class-mm-core.php';
  *
  * @since    1.0.0
  */
-function mm_run_media_maestro() {
+function media_maestro_run_plugin() {
 
 	$plugin = new Media_Maestro_Core();
 	$plugin->run();
 
 }
-mm_run_media_maestro();
+media_maestro_run_plugin();
