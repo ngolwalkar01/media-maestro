@@ -132,8 +132,6 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
 
         $payload .= "--" . $boundary . "--\r\n";
 
-        error_log( "MM_OPENAI: Product Placement (model={$model}) using /v1/images/edits with wp_remote_post..." );
-
         $response = wp_remote_post( 'https://api.openai.com/v1/images/edits', array(
             'headers' => $headers,
             'body'    => $payload,
@@ -148,7 +146,6 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
         $result    = wp_remote_retrieve_body( $response );
 
         if ( $http_code !== 200 ) {
-            error_log( "MM_OPENAI: Product Placement Error ($http_code): $result" );
             $json_error = json_decode( $result, true );
             if ( isset( $json_error['error']['message'] ) ) {
                 return new WP_Error( 'api_error', "OpenAI Error: " . $json_error['error']['message'] );
@@ -184,7 +181,7 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
             $written  = file_put_contents( $png_path, $raw );
 
             // tempnam creates an empty file; remove it
-            @unlink( $tmp );
+            wp_delete_file( $tmp );
 
             if ( ! $written ) {
                 return new WP_Error( 'write_failed', 'Failed to write decoded image to temp file.' );
@@ -214,21 +211,17 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
         //    B. Generate New Image (DALL-E 3) -> Description + User Prompt
 
         // Step A: Describe Image
-        error_log( "MM_OPENAI: Analyzing image for Smart Edit..." );
         $description = $this->analyze_image( $source_path );
         
         if ( is_wp_error( $description ) ) {
-            error_log( "MM_OPENAI: Analysis failed: " . $description->get_error_message() );
             // Fallback: Just use the user prompt blindly
             $final_prompt = $prompt;
         } else {
-            error_log( "MM_OPENAI: Image Description: " . substr( $description, 0, 100 ) . "..." );
             // Combine: Content Description + Style/Edit Instruction
             $final_prompt = "Create an image based on this description: " . $description . ". \n\n Modification/Style to apply: " . $prompt;
         }
 
         // Step B: Generate
-        error_log( "MM_OPENAI: Generating with prompt: " . substr( $final_prompt, 0, 100 ) . "..." );
         return $this->generate_image( $final_prompt );
     }
 
@@ -462,7 +455,6 @@ Return ONLY a raw JSON object (no markdown formatting, no code blocks) with the 
             'timeout' => 60
         );
 
-        error_log( "MM_OPENAI: Requesting AI Tags for attachment $attachment_id..." );
         $response = wp_remote_post( $url, $args );
 
         if ( is_wp_error( $response ) ) {
@@ -473,7 +465,6 @@ Return ONLY a raw JSON object (no markdown formatting, no code blocks) with the 
         $body = wp_remote_retrieve_body( $response );
         
         if ( $code !== 200 ) {
-            error_log( "MM_OPENAI: Analyze Error ($code): $body" );
             return new WP_Error( 'api_error', "OpenAI Error ($code): " . substr( $body, 0, 200 ) );
         }
 
@@ -501,7 +492,6 @@ Return ONLY a raw JSON object (no markdown formatting, no code blocks) with the 
                 
                 if ( ! empty( $searchable_string ) ) {
                     update_post_meta( $attachment_id, '_mm_ai_tags', $searchable_string );
-                    error_log( "MM_OPENAI: Saved tags for $attachment_id: " . substr( $searchable_string, 0, 100 ) );
                     return true;
                 }
             }
@@ -578,7 +568,6 @@ Return ONLY a raw JSON object (no markdown formatting, no code blocks) with the 
             'timeout' => 60
         );
 
-        error_log( "MM_OPENAI: Requesting AI SEO for attachment $attachment_id..." );
         $response = wp_remote_post( $url, $args );
 
         if ( is_wp_error( $response ) ) {
@@ -625,7 +614,6 @@ Return ONLY a raw JSON object (no markdown formatting, no code blocks) with the 
                     update_post_meta( $attachment_id, '_wp_attachment_image_alt', sanitize_text_field( $seo_data['alt_text'] ) );
                 }
 
-                error_log( "MM_OPENAI: Saved SEO data for $attachment_id." );
                 return true;
             }
         }
@@ -723,7 +711,6 @@ Return ONLY a raw JSON object (no markdown formatting, no code blocks) with the 
         $body = wp_remote_retrieve_body( $response );
 
         if ( $code !== 200 ) {
-             error_log( "MM_OPENAI: Gen Error: $body" );
              return new WP_Error( 'api_error', "OpenAI Error ($code): $body" );
         }
 
@@ -748,21 +735,56 @@ Return ONLY a raw JSON object (no markdown formatting, no code blocks) with the 
     private function generate_variation( $source_path ) {
         $url = 'https://api.openai.com/v1/images/variations';
         
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            'Authorization: Bearer ' . $this->api_key,
-        ));
-        
-        $cfile = new CURLFile($source_path);
-        $data = array('image' => $cfile, 'n' => 1, 'size' => '1024x1024');
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        
-        $result = curl_exec($ch);
-        curl_close($ch);
-        
+        $boundary = wp_generate_password( 24, false, false );
+        $headers  = array(
+            'Authorization' => 'Bearer ' . $this->api_key,
+            'Content-Type'  => 'multipart/form-data; boundary=' . $boundary,
+        );
+
+        $payload = '';
+
+        // Helper to add a form field
+        $add_field = function( $name, $value ) use ( &$payload, $boundary ) {
+            $payload .= "--" . $boundary . "\r\n";
+            $payload .= "Content-Disposition: form-data; name=\"" . $name . "\"\r\n\r\n";
+            $payload .= $value . "\r\n";
+        };
+
+        // Helper to add a file
+        $add_file = function( $name, $filepath, $filename, $mime ) use ( &$payload, $boundary ) {
+            $payload .= "--" . $boundary . "\r\n";
+            $payload .= "Content-Disposition: form-data; name=\"" . $name . "\"; filename=\"" . $filename . "\"\r\n";
+            $payload .= "Content-Type: " . $mime . "\r\n\r\n";
+            $payload .= file_get_contents( $filepath ) . "\r\n";
+        };
+
+        $add_file( 'image', $source_path, wp_basename( $source_path ), 'image/png' );
+        $add_field( 'n', '1' );
+        $add_field( 'size', '1024x1024' );
+
+        $payload .= "--" . $boundary . "--\r\n";
+
+        $response = wp_remote_post( $url, array(
+            'headers' => $headers,
+            'body'    => $payload,
+            'timeout' => 60,
+        ) );
+
+        if ( is_wp_error( $response ) ) {
+            return new WP_Error( 'api_error', "OpenAI HTTP Error: " . $response->get_error_message() );
+        }
+
+        $http_code = wp_remote_retrieve_response_code( $response );
+        $result    = wp_remote_retrieve_body( $response );
+
+        if ( $http_code !== 200 ) {
+            $json_error = json_decode( $result, true );
+            if ( isset( $json_error['error']['message'] ) ) {
+                return new WP_Error( 'api_error', "OpenAI Error: " . $json_error['error']['message'] );
+            }
+            return new WP_Error( 'api_error', "OpenAI Error ($http_code): " . substr( $result, 0, 200 ) );
+        }
+
         $json = json_decode( $result, true );
         
         if ( empty( $json['data'][0]['url'] ) ) {
