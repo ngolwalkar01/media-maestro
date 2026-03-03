@@ -135,12 +135,33 @@ class Media_Maestro_Job_Manager {
                 if ( $status === 'completed' ) $color = '#10b981'; // green
                 if ( $status === 'failed' )    $color = '#ef4444'; // red
                 if ( $status === 'processing') $color = '#f59e0b'; // yellow
-                echo '<span style="color:' . $color . '; font-weight:bold;">' . esc_html( strtoupper( $status ) ) . '</span>';
+                echo wp_kses(
+                    sprintf(
+                        '<span style="color:%s; font-weight:bold;">%s</span>',
+                        esc_attr( $color ),
+                        esc_html( strtoupper( $status ) )
+                    ),
+                    array(
+                        'span' => array(
+                            'style' => array(),
+                        ),
+                    )
+                );
                 break;
             case 'mm_error':
                 $error = get_post_meta( $post_id, '_mm_error_message', true );
                 if ( $error ) {
-                    echo '<span style="color:#ef4444; font-size:12px;">' . esc_html( $error ) . '</span>';
+                    echo wp_kses(
+                        sprintf(
+                            '<span style="color:#ef4444; font-size:12px;">%s</span>',
+                            esc_html( $error )
+                        ),
+                        array(
+                            'span' => array(
+                                'style' => array(),
+                            ),
+                        )
+                    );
                 }
                 break;
         }
