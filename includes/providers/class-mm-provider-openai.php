@@ -110,17 +110,17 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
 
         // Helper to add a form field
         $add_field = function( $name, $value ) use ( &$payload, $boundary ) {
-            $payload .= "--" . $boundary . "`r`n";
-            $payload .= "Content-Disposition: form-data; name=`"" . $name . "`"`r`n`r`n";
-            $payload .= $value . "`r`n";
+            $payload .= "--" . $boundary . "\r\n";
+            $payload .= "Content-Disposition: form-data; name=\"" . $name . "\"\r\n\r\n";
+            $payload .= $value . "\r\n";
         };
 
         // Helper to add a file
         $add_file = function( $name, $filepath, $filename, $mime ) use ( &$payload, $boundary ) {
-            $payload .= "--" . $boundary . "`r`n";
-            $payload .= "Content-Disposition: form-data; name=`"" . $name . "`"; filename=`"" . $filename . "`"`r`n";
-            $payload .= "Content-Type: " . $mime . "`r`n`r`n";
-            $payload .= file_get_contents( $filepath ) . "`r`n";
+            $payload .= "--" . $boundary . "\r\n";
+            $payload .= "Content-Disposition: form-data; name=\"" . $name . "\"; filename=\"" . $filename . "\"\r\n";
+            $payload .= "Content-Type: " . $mime . "\r\n\r\n";
+            $payload .= file_get_contents( $filepath ) . "\r\n";
         };
 
         $add_file( 'image', $prepared_image_path, wp_basename( $prepared_image_path ), 'image/png' );
@@ -130,7 +130,7 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
         $add_field( 'n', '1' );
         $add_field( 'size', '1024x1024' );
 
-        $payload .= "--" . $boundary . "--`r`n";
+        $payload .= "--" . $boundary . "--\r\n";
 
         error_log( "MM_OPENAI: Product Placement (model={$model}) using /v1/images/edits with wp_remote_post..." );
 
