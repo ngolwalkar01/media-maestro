@@ -7,9 +7,6 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * Loads and defines the internationalization files for this plugin
  * so that it is ready for translation.
  *
- * @link       https://example.com
- * @since      1.0.0
- *
  * @package    Media_Maestro
  * @subpackage Media_Maestro/includes
  */
@@ -23,7 +20,6 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * @since      1.0.0
  * @package    Media_Maestro
  * @subpackage Media_Maestro/includes
- * @author     Your Name <email@example.com>
  */
 class Media_Maestro_i18n {
 
@@ -33,14 +29,8 @@ class Media_Maestro_i18n {
 	 * @since    1.0.0
 	 */
 	public function load_plugin_textdomain() {
-
-		load_plugin_textdomain(
-			'media-maestro',
-			false,
-			dirname( dirname( plugin_basename( __FILE__ ) ) ) . '/languages/'
-		);
-
+		// Translations are automatically loaded by WordPress for repo plugins since version 4.6.
+		// Intentionally left empty to satisfy the Plugin Check requirements.
 	}
 
 }
-
