@@ -37,3 +37,171 @@
     font-size: 12px;
     color: #666;
 }
+
+/* Media Library Folders Sidebar */
+.attachments-browser.has-folders-sidebar .media-toolbar,
+.attachments-browser.has-folders-sidebar .attachments,
+.attachments-browser.has-folders-sidebar .uploader-inline {
+    left: 200px;
+}
+
+.mm-folders-sidebar {
+    position: absolute;
+    top: 50px;
+    left: 0;
+    width: 200px;
+    bottom: 0;
+    border-right: 1px solid #dcdcdc;
+    background: #fbfbfb;
+    box-sizing: border-box;
+    padding: 12px;
+    overflow-y: auto;
+    z-index: 10;
+}
+
+.mm-folders-title-wrap {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 8px;
+}
+
+.mm-folders-title {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #4b5563;
+    letter-spacing: 0.5px;
+}
+
+.mm-btn-add-folder {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: #2271b1;
+    padding: 0 4px;
+    line-height: 1;
+    font-weight: bold;
+}
+.mm-btn-add-folder:hover {
+    color: #135e96;
+}
+
+.mm-folders-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.mm-folder-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    background: transparent;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    user-select: none;
+    position: relative;
+    color: #1d2327;
+}
+
+.mm-folder-item:hover {
+    background-color: #f3f4f6;
+}
+
+.mm-folder-item.active {
+    background-color: #2271b1;
+    color: #ffffff;
+}
+
+.mm-folder-item.active .mm-folder-name {
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.mm-folder-item.active .mm-folder-count {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+}
+
+.mm-folder-item.active .mm-folder-actions {
+    color: #ffffff;
+}
+
+.mm-folder-name {
+    font-size: 13px;
+    color: inherit;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    margin-right: 6px;
+}
+
+.mm-folder-count {
+    font-size: 11px;
+    background: #e5e7eb;
+    color: #4b5563;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+    min-width: 12px;
+    text-align: center;
+}
+
+.mm-folder-actions {
+    display: none;
+    gap: 4px;
+    margin-left: 6px;
+    color: #64748b;
+}
+
+.mm-folder-item:hover .mm-folder-actions {
+    display: flex;
+}
+
+.mm-folder-action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: inherit;
+    padding: 2px;
+    line-height: 1;
+}
+
+.mm-folder-action-btn:hover {
+    color: #ef4444;
+}
+.mm-folder-action-btn.rename-btn:hover {
+    color: #ffffff;
+    background: #135e96;
+    border-radius: 2px;
+}
+
+/* Drag and Drop Helpers */
+.ui-draggable-dragging {
+    opacity: 0.8;
+    z-index: 99999 !important;
+    border: 2px solid #2271b1 !important;
+    border-radius: 4px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
+}
+
+/* Droppable hover state */
+.mm-folder-hover {
+    background-color: #dbeafe !important;
+    border: 1px dashed #2271b1 !important;
+}
+
+.mm-folder-item.active.mm-folder-hover {
+    background-color: #1d4ed8 !important;
+    border: 1px dashed #ffffff !important;
+}

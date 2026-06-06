@@ -105,7 +105,15 @@ class Media_Maestro_Admin {
      * Enqueue Media View assets.
      */
     public function enqueue_media_assets() {
-        wp_enqueue_script( $this->plugin_name . '-media-view', plugin_dir_url( __FILE__ ) . 'js/media-maestro-media-view.js', array( 'media-views' ), time() + 9, true );
+        // Folders organizer script
+        wp_enqueue_script( $this->plugin_name . '-folders', plugin_dir_url( __FILE__ ) . 'js/media-maestro-folders.js', array( 'media-views', 'jquery-ui-draggable', 'jquery-ui-droppable' ), $this->version, true );
+        wp_localize_script( $this->plugin_name . '-folders', 'mm_folders_data', array(
+            'nonce'   => wp_create_nonce( 'wp_rest' ),
+            'api_url' => esc_url_raw( rest_url( 'mm/v1/folders' ) ),
+        ) );
+
+        // AI sidebar script
+        wp_enqueue_script( $this->plugin_name . '-media-view', plugin_dir_url( __FILE__ ) . 'js/media-maestro-media-view.js', array( 'media-views' ), $this->version, true );
         wp_localize_script( $this->plugin_name . '-media-view', 'mm_data', array(
             'nonce'   => wp_create_nonce( 'wp_rest' ),
             'api_url' => esc_url_raw( rest_url( 'mm/v1/jobs' ) ),

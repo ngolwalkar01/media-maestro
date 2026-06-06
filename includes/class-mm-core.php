@@ -69,6 +69,7 @@ class Media_Maestro_Core {
         $this->define_job_hooks();
         $this->define_rest_hooks();
         $this->define_tagging_hooks();
+        $this->define_folder_hooks();
     }
 
     /**
@@ -188,6 +189,10 @@ class Media_Maestro_Core {
             require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/api/class-mm-rest-controller.php';
             $controller = new Media_Maestro_REST_Controller();
             $controller->register_routes();
+
+            require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/api/class-mm-folder-controller.php';
+            $folder_controller = new Media_Maestro_Folder_Controller();
+            $folder_controller->register_routes();
         } );
     }
 
@@ -392,6 +397,203 @@ class Media_Maestro_Core {
      */
     public function get_version() {
         return $this->version;
+    }
+
+    /**
+     * Register folder organizer hooks.
+     *
+     * @since 1.0.0
+     * @access private
+     */
+    private function define_folder_hooks() {
+        // Register taxonomy
+        add_action( 'init', array( $this, 'register_folder_taxonomy' ) );
+
+        // Filter media grid query args
+        add_filter( 'ajax_query_attachments_args', array( $this, 'filter_grid_attachments_by_folder' ) );
+
+        // Handle auto assignment on upload
+        add_action( 'add_attachment', array( $this, 'assign_folder_on_upload' ), 9 ); // Run early
+
+        // Add filter select to list table view
+        add_action( 'restrict_manage_posts', array( $this, 'add_folder_list_filter' ) );
+        add_filter( 'request', array( $this, 'filter_media_list_by_folder' ) );
+
+        // Add column to media list view
+        add_filter( 'manage_media_columns', array( $this, 'add_folder_column' ) );
+        add_action( 'manage_media_custom_column', array( $this, 'render_folder_column' ), 10, 2 );
+    }
+
+    /**
+     * Register custom taxonomy for folders.
+     */
+    public function register_folder_taxonomy() {
+        $labels = array(
+            'name'              => _x( 'Folders', 'taxonomy general name', 'media-maestro' ),
+            'singular_name'     => _x( 'Folder', 'taxonomy singular name', 'media-maestro' ),
+            'search_items'      => __( 'Search Folders', 'media-maestro' ),
+            'all_items'         => __( 'All Folders', 'media-maestro' ),
+            'parent_item'       => __( 'Parent Folder', 'media-maestro' ),
+            'parent_item_colon' => __( 'Parent Folder:', 'media-maestro' ),
+            'edit_item'         => __( 'Edit Folder', 'media-maestro' ),
+            'update_item'       => __( 'Update Folder', 'media-maestro' ),
+            'add_new_item'      => __( 'Add New Folder', 'media-maestro' ),
+            'new_item_name'     => __( 'New Folder Name', 'media-maestro' ),
+            'menu_name'         => __( 'Folders', 'media-maestro' ),
+        );
+
+        register_taxonomy( 'mm_folder', 'attachment', array(
+            'hierarchical'      => true,
+            'labels'            => $labels,
+            'show_ui'           => false,
+            'show_in_menu'      => false,
+            'show_in_nav_menus' => false,
+            'show_admin_column' => false,
+            'query_var'         => true,
+            'rewrite'           => false,
+        ) );
+    }
+
+    /**
+     * Filter media grid query args based on folder selection.
+     */
+    public function filter_grid_attachments_by_folder( $query ) {
+        if ( ! empty( $_REQUEST['query']['mm_folder'] ) ) {
+            $folder = sanitize_text_field( $_REQUEST['query']['mm_folder'] );
+            if ( 'unassigned' === $folder ) {
+                $query['tax_query'] = array(
+                    array(
+                        'taxonomy' => 'mm_folder',
+                        'operator' => 'NOT EXISTS',
+                    ),
+                );
+            } elseif ( is_numeric( $folder ) ) {
+                $query['tax_query'] = array(
+                    array(
+                        'taxonomy' => 'mm_folder',
+                        'field'    => 'term_id',
+                        'terms'    => absint( $folder ),
+                    ),
+                );
+            } else {
+                $query['tax_query'] = array(
+                    array(
+                        'taxonomy' => 'mm_folder',
+                        'field'    => 'slug',
+                        'terms'    => $folder,
+                    ),
+                );
+            }
+        }
+        return $query;
+    }
+
+    /**
+     * Handle auto assignment on upload.
+     */
+    public function assign_folder_on_upload( $attachment_id ) {
+        if ( isset( $_POST['mm_folder'] ) ) {
+            $folder = sanitize_text_field( $_POST['mm_folder'] );
+            if ( is_numeric( $folder ) && $folder > 0 ) {
+                wp_set_object_terms( $attachment_id, absint( $folder ), 'mm_folder' );
+            } elseif ( ! is_numeric( $folder ) && ! empty( $folder ) && 'unassigned' !== $folder ) {
+                $term = get_term_by( 'slug', $folder, 'mm_folder' );
+                if ( $term ) {
+                    wp_set_object_terms( $attachment_id, $term->term_id, 'mm_folder' );
+                }
+            }
+        }
+    }
+
+    /**
+     * Add filter select to list table view.
+     */
+    public function add_folder_list_filter( $post_type ) {
+        if ( 'attachment' !== $post_type ) {
+            return;
+        }
+        $selected = isset( $_GET['mm_folder_filter'] ) ? sanitize_text_field( $_GET['mm_folder_filter'] ) : '';
+        $terms = get_terms( array(
+            'taxonomy'   => 'mm_folder',
+            'hide_empty' => false,
+        ) );
+        
+        echo '<select name="mm_folder_filter" id="mm_folder_filter">';
+        echo '<option value="">' . esc_html__( 'All Folders', 'media-maestro' ) . '</option>';
+        echo '<option value="unassigned" ' . selected( $selected, 'unassigned', false ) . '>' . esc_html__( 'Unassigned', 'media-maestro' ) . '</option>';
+        if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) {
+            foreach ( $terms as $term ) {
+                printf(
+                    '<option value="%s" %s>%s (%d)</option>',
+                    esc_attr( $term->slug ),
+                    selected( $selected, $term->slug, false ),
+                    esc_html( $term->name ),
+                    $term->count
+                );
+            }
+        }
+        echo '</select>';
+    }
+
+    /**
+     * Filter media list query args by folder.
+     */
+    public function filter_media_list_by_folder( $query_vars ) {
+        if ( ! is_admin() ) {
+            return $query_vars;
+        }
+        global $pagenow;
+        if ( 'upload.php' !== $pagenow ) {
+            return $query_vars;
+        }
+        if ( isset( $query_vars['post_type'] ) && 'attachment' !== $query_vars['post_type'] && 'any' !== $query_vars['post_type'] ) {
+            return $query_vars;
+        }
+
+        if ( ! empty( $_GET['mm_folder_filter'] ) ) {
+            $filter = sanitize_text_field( $_GET['mm_folder_filter'] );
+            if ( 'unassigned' === $filter ) {
+                $query_vars['tax_query'] = array(
+                    array(
+                        'taxonomy' => 'mm_folder',
+                        'operator' => 'NOT EXISTS',
+                    ),
+                );
+            } else {
+                $query_vars['tax_query'] = array(
+                    array(
+                        'taxonomy' => 'mm_folder',
+                        'field'    => 'slug',
+                        'terms'    => $filter,
+                    ),
+                );
+            }
+        }
+        return $query_vars;
+    }
+
+    /**
+     * Add column to media list view.
+     */
+    public function add_folder_column( $columns ) {
+        $columns['mm_folder_col'] = __( 'Folder', 'media-maestro' );
+        return $columns;
+    }
+
+    /**
+     * Render the column contents.
+     */
+    public function render_folder_column( $column_name, $post_id ) {
+        if ( 'mm_folder_col' !== $column_name ) {
+            return;
+        }
+        $terms = get_the_terms( $post_id, 'mm_folder' );
+        if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) {
+            $term = array_shift( $terms );
+            echo '<span class="mm-folder-badge" style="background:#e0f2fe; color:#0369a1; font-size:11px; padding:2px 6px; border-radius:4px; font-weight:500;">' . esc_html( $term->name ) . '</span>';
+        } else {
+            echo '<span style="color:#9ca3af; font-size:11px;">' . esc_html__( 'Unassigned', 'media-maestro' ) . '</span>';
+        }
     }
 
 }
