@@ -61,21 +61,10 @@ class Media_Maestro_Admin {
 	 * @since    1.0.0
 	 */
 	public function enqueue_styles() {
+		$css_path = plugin_dir_path( __FILE__ ) . 'css/media-maestro-admin.css';
+		$version  = file_exists( $css_path ) ? filemtime( $css_path ) : $this->version;
 
-		/**
-		 * This function is provided for demonstration purposes only.
-		 *
-		 * An instance of this class should be passed to the run() function
-		 * defined in Media_Maestro_Loader as all of the hooks are defined
-		 * in that particular class.
-		 *
-		 * The Media_Maestro_Loader will then create the relationship
-		 * between the defined hooks and the functions defined in this
-		 * class.
-		 */
-
-		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/media-maestro-admin.css', array(), $this->version, 'all' );
-
+		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/media-maestro-admin.css', array(), $version, 'all' );
 	}
 
 	/**
@@ -84,36 +73,31 @@ class Media_Maestro_Admin {
 	 * @since    1.0.0
 	 */
 	public function enqueue_scripts() {
+		$js_path = plugin_dir_path( __FILE__ ) . 'js/media-maestro-admin.js';
+		$version = file_exists( $js_path ) ? filemtime( $js_path ) : $this->version;
 
-		/**
-		 * This function is provided for demonstration purposes only.
-		 *
-		 * An instance of this class should be passed to the run() function
-		 * defined in Media_Maestro_Loader as all of the hooks are defined
-		 * in that particular class.
-		 *
-		 * The Media_Maestro_Loader will then create the relationship
-		 * between the defined hooks and the functions defined in this
-		 * class.
-		 */
-
-		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/media-maestro-admin.js', array( 'jquery' ), $this->version, true );
-		
+		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/media-maestro-admin.js', array( 'jquery' ), $version, true );
 	}
 
     /**
      * Enqueue Media View assets.
      */
     public function enqueue_media_assets() {
+        $folders_path = plugin_dir_path( __FILE__ ) . 'js/media-maestro-folders.js';
+        $folders_ver  = file_exists( $folders_path ) ? filemtime( $folders_path ) : $this->version;
+
+        $media_view_path = plugin_dir_path( __FILE__ ) . 'js/media-maestro-media-view.js';
+        $media_view_ver  = file_exists( $media_view_path ) ? filemtime( $media_view_path ) : $this->version;
+
         // Folders organizer script
-        wp_enqueue_script( $this->plugin_name . '-folders', plugin_dir_url( __FILE__ ) . 'js/media-maestro-folders.js', array( 'media-views', 'jquery-ui-draggable', 'jquery-ui-droppable' ), $this->version, true );
+        wp_enqueue_script( $this->plugin_name . '-folders', plugin_dir_url( __FILE__ ) . 'js/media-maestro-folders.js', array( 'media-views', 'jquery-ui-draggable', 'jquery-ui-droppable' ), $folders_ver, true );
         wp_localize_script( $this->plugin_name . '-folders', 'mm_folders_data', array(
             'nonce'   => wp_create_nonce( 'wp_rest' ),
             'api_url' => esc_url_raw( rest_url( 'mm/v1/folders' ) ),
         ) );
 
         // AI sidebar script
-        wp_enqueue_script( $this->plugin_name . '-media-view', plugin_dir_url( __FILE__ ) . 'js/media-maestro-media-view.js', array( 'media-views' ), $this->version, true );
+        wp_enqueue_script( $this->plugin_name . '-media-view', plugin_dir_url( __FILE__ ) . 'js/media-maestro-media-view.js', array( 'media-views' ), $media_view_ver, true );
         wp_localize_script( $this->plugin_name . '-media-view', 'mm_data', array(
             'nonce'   => wp_create_nonce( 'wp_rest' ),
             'api_url' => esc_url_raw( rest_url( 'mm/v1/jobs' ) ),
