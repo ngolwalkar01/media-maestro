@@ -1,8 +1,8 @@
 /**
- * Media Maestro - Folders Organizer
+ * Media Maestro - Folders Organizer UI Refactor
  *
- * Extends the WordPress Media Library grid view to add a native folder sidebar panel,
- * drag-and-drop capability, and list updates.
+ * Extends the WordPress Media Library grid view to add a native folder sidebar panel
+ * in a two-column page layout, support drag-and-drop, real-time search, and active folder controls.
  */
 (function ($, _) {
     'use strict';
@@ -26,17 +26,22 @@
 
         events: {
             'click .mm-btn-add-folder': 'createFolder',
-            'click .mm-folder-item': 'selectFolder',
+            'click .rename-btn': 'renameFolder',
             'click .delete-btn': 'deleteFolder',
-            'click .rename-btn': 'renameFolder'
+            'click .mm-btn-settings': 'openSettings',
+            'click .clear-btn': 'clearFilter',
+            'click .toggle-btn': 'toggleCollapse',
+            'input .mm-folder-search-input': 'onSearchFolders',
+            'click .mm-folder-item': 'selectFolder'
         },
 
         initialize: function (options) {
             this.browser = options.browser;
             this.controller = options.controller;
-            this.currentFolder = ''; // default "All Media"
+            this.currentFolder = ''; // default "All Files"
             this.folders = [];
             this.counts = { unassigned: 0, all: 0 };
+            this.isCollapsed = false;
 
             // Fetch initial folders list from server
             this.fetchFolders();
@@ -71,37 +76,71 @@
             var self = this;
             var html = '';
 
-            html += '<div class="mm-folders-title-wrap">';
-            html += '  <span class="mm-folders-title">' + mm_folders_data.folders_str + '</span>';
-            html += '  <button type="button" class="mm-btn-add-folder" title="' + mm_folders_data.new_folder + '">+</button>';
+            // 1. Header Row
+            html += '<div class="mm-folders-header">';
+            html += '  <span class="mm-folders-title">Media Library Organizer</span>';
+            html += '  <button type="button" class="mm-btn-settings" title="Settings">&#9881;</button>';
             html += '</div>';
 
-            html += '<ul class="mm-folders-list">';
+            // 2. Action Rows Section
+            html += '<div class="mm-folders-actions-section">';
+            html += '  <div class="mm-action-row-1">';
+            html += '    <button type="button" class="button button-primary mm-btn-add-folder">+ New Folder</button>';
+            html += '    <div class="mm-action-group-right">';
+            html += '      <button type="button" class="button mm-action-small-btn sort-btn" title="Sort Folders (PRO)" disabled><span class="mm-pro-badge">PRO</span>&#8645;</button>';
+            html += '      <button type="button" class="button mm-action-small-btn clear-btn" title="Clear Filter">&times;</button>';
+            html += '      <button type="button" class="button mm-action-small-btn toggle-btn" title="Toggle Folder List">&#8597;</button>';
+            html += '    </div>';
+            html += '  </div>';
+
+            // Row 2: Rename, Delete, Bulk select
+            var isCustomFolder = (this.currentFolder !== '' && this.currentFolder !== 'unassigned');
+            var disabledAttr = isCustomFolder ? '' : ' disabled';
+            var disabledClass = isCustomFolder ? '' : ' disabled';
+
+            html += '  <div class="mm-action-row-2">';
+            html += '    <button type="button" class="button rename-btn' + disabledClass + '"' + disabledAttr + '>&#9998; Rename</button>';
+            html += '    <button type="button" class="button delete-btn' + disabledClass + '"' + disabledAttr + '>&#128465; Delete</button>';
+            html += '    <button type="button" class="button bulk-select-btn">&#9745; Bulk select</button>';
+            html += '  </div>';
+            html += '</div>';
+
+            // 3. Folder Search Section
+            html += '<div class="mm-folders-search-section">';
+            html += '  <span class="mm-search-icon">&#128269;</span>';
+            html += '  <input type="search" class="mm-folder-search-input" placeholder="Find folder..." />';
+            html += '</div>';
+
+            // 4. Folder List
+            var listCollapsedClass = this.isCollapsed ? ' mm-collapsed' : '';
+            html += '<ul class="mm-folders-list' + listCollapsedClass + '">';
             
-            // All Media Folder
+            // All Files Folder
             var allActive = (this.currentFolder === '') ? ' active' : '';
             html += '  <li class="mm-folder-item' + allActive + '" data-folder-id="">';
-            html += '    <span class="mm-folder-name">All Media</span>';
+            html += '    <span class="mm-folder-icon">&#128196;</span>'; // Paper/file icon
+            html += '    <span class="mm-folder-name">All Files</span>';
             html += '    <span class="mm-folder-count">' + this.counts.all + '</span>';
             html += '  </li>';
 
-            // Unassigned Folder
+            // Uncategorized Folder
             var unassignedActive = (this.currentFolder === 'unassigned') ? ' active' : '';
             html += '  <li class="mm-folder-item' + unassignedActive + '" data-folder-id="unassigned">';
-            html += '    <span class="mm-folder-name">Unassigned</span>';
+            html += '    <span class="mm-folder-icon">&#128194;&#215;</span>'; // Folder with cross
+            html += '    <span class="mm-folder-name">Uncategorized</span>';
             html += '    <span class="mm-folder-count">' + this.counts.unassigned + '</span>';
             html += '  </li>';
 
-            // User Folders
+            // Custom Folders Header Label
+            html += '  <li class="mm-folder-section-heading">FOLDERS</li>';
+
+            // User Custom Folders
             _.each(this.folders, function (folder) {
                 var folderActive = (self.currentFolder == folder.id) ? ' active' : '';
                 html += '  <li class="mm-folder-item' + folderActive + '" data-folder-id="' + folder.id + '">';
+                html += '    <span class="mm-folder-icon">&#128194;</span>'; // Folder icon
                 html += '    <span class="mm-folder-name">' + _.escape(folder.name) + '</span>';
                 html += '    <span class="mm-folder-count">' + folder.count + '</span>';
-                html += '    <div class="mm-folder-actions">';
-                html += '      <button type="button" class="mm-folder-action-btn rename-btn" title="Rename">&#9998;</button>';
-                html += '      <button type="button" class="mm-folder-action-btn delete-btn" title="Delete">&times;</button>';
-                html += '    </div>';
                 html += '  </li>';
             });
 
@@ -109,7 +148,7 @@
 
             this.$el.html(html);
 
-            // Bind droppable to folders
+            // Bind droppable targets
             this.bindDroppables();
 
             return this;
@@ -119,19 +158,20 @@
             var $target = $(e.currentTarget);
             var folderId = $target.data('folder-id');
 
-            // Prevent selecting folder if clicking action buttons
-            if ($(e.target).hasClass('mm-folder-action-btn')) {
-                return;
-            }
-
             this.currentFolder = folderId;
             this.$('.mm-folder-item').removeClass('active');
             $target.addClass('active');
 
-            // Apply filter to collection
+            // Apply filter to query props
             this.browser.collection.props.set({ mm_folder: folderId });
             
-            // Set active upload folder
+            // Toggle action buttons disabled state based on active selection
+            var isCustomFolder = (folderId !== '' && folderId !== 'unassigned');
+            this.$('.rename-btn, .delete-btn')
+                .prop('disabled', !isCustomFolder)
+                .toggleClass('disabled', !isCustomFolder);
+
+            // Set active upload folder params
             if (wp.media.uploader && wp.media.uploader.options && wp.media.uploader.options.uploader) {
                 wp.media.uploader.options.uploader.params = _.extend(
                     wp.media.uploader.options.uploader.params || {},
@@ -177,10 +217,13 @@
             e.stopPropagation();
 
             var self = this;
-            var $item = $(e.currentTarget).closest('.mm-folder-item');
-            var folderId = $item.data('folder-id');
-            var oldName = $item.find('.mm-folder-name').text();
+            var folderId = this.currentFolder;
+            if (folderId === '' || folderId === 'unassigned') {
+                return;
+            }
 
+            // Find current active name
+            var oldName = this.$('.mm-folder-item.active .mm-folder-name').text();
             var name = prompt('Rename folder to:', oldName);
             if (!name) {
                 return;
@@ -192,7 +235,7 @@
 
             $.ajax({
                 url: mm_folders_data.api_url + '/' + folderId,
-                method: 'POST', // WordPress EDITABLE endpoints map to POST
+                method: 'POST',
                 beforeSend: function (xhr) {
                     xhr.setRequestHeader('X-WP-Nonce', mm_folders_data.nonce);
                 },
@@ -212,8 +255,10 @@
             e.stopPropagation();
 
             var self = this;
-            var $item = $(e.currentTarget).closest('.mm-folder-item');
-            var folderId = $item.data('folder-id');
+            var folderId = this.currentFolder;
+            if (folderId === '' || folderId === 'unassigned') {
+                return;
+            }
 
             if (!confirm('Are you sure you want to delete this folder? Media items inside will not be deleted.')) {
                 return;
@@ -226,15 +271,54 @@
                     xhr.setRequestHeader('X-WP-Nonce', mm_folders_data.nonce);
                 }
             }).done(function () {
-                if (self.currentFolder == folderId) {
-                    self.currentFolder = '';
-                    self.browser.collection.props.set({ mm_folder: '' });
-                }
+                self.currentFolder = '';
+                self.browser.collection.props.set({ mm_folder: '' });
                 self.fetchFolders();
             }).fail(function (xhr) {
                 var error = xhr.responseJSON ? xhr.responseJSON.message : 'Error deleting folder.';
                 alert(error);
             });
+        },
+
+        openSettings: function (e) {
+            e.preventDefault();
+            window.location.href = 'options-general.php?page=media-maestro';
+        },
+
+        clearFilter: function (e) {
+            e.preventDefault();
+            this.currentFolder = '';
+            this.$('.mm-folder-item').removeClass('active');
+            this.$('.mm-folder-item[data-folder-id=""]').addClass('active');
+            this.browser.collection.props.set({ mm_folder: '' });
+            this.$('.rename-btn, .delete-btn').addClass('disabled').prop('disabled', true);
+        },
+
+        toggleCollapse: function (e) {
+            e.preventDefault();
+            this.isCollapsed = !this.isCollapsed;
+            this.$('.mm-folders-list').toggleClass('mm-collapsed', this.isCollapsed);
+        },
+
+        onSearchFolders: function (e) {
+            var query = $(e.currentTarget).val().toLowerCase();
+            this.$('.mm-folders-list .mm-folder-item').each(function () {
+                var $item = $(this);
+                var name = $item.find('.mm-folder-name').text().toLowerCase();
+                
+                if (name.indexOf(query) !== -1) {
+                    $item.show();
+                } else {
+                    $item.hide();
+                }
+            });
+
+            // Handle heading display visibility based on query
+            if (query !== '') {
+                this.$('.mm-folder-section-heading').hide();
+            } else {
+                this.$('.mm-folder-section-heading').show();
+            }
         },
 
         bindDroppables: function () {
@@ -248,7 +332,7 @@
                     var draggedId = parseInt(ui.helper.data('attachment-id'), 10);
                     var ids = [draggedId];
 
-                    // Check if dragged item is part of a bulk selection
+                    // Check if dragged item is part of bulk selection
                     var selection = self.controller.state().get('selection');
                     if (selection && selection.length > 0) {
                         var selectionIds = selection.pluck('id');
@@ -256,6 +340,10 @@
                             ids = selectionIds;
                         }
                     }
+
+                    // Show visual loading indicator state on the droppable target folder item
+                    var $folderItem = $(this);
+                    $folderItem.addClass('mm-folder-loading');
 
                     // Assign to folder on server
                     $.ajax({
@@ -269,6 +357,7 @@
                             folder_id: folderId
                         }
                     }).done(function (response) {
+                        $folderItem.removeClass('mm-folder-loading');
                         if (response && response.folders) {
                             self.folders = response.folders;
                             self.counts.unassigned = response.unassigned;
@@ -276,13 +365,16 @@
                             self.render();
                         }
                         
-                        // Clear active selections
+                        // Reset selection
                         if (selection) {
                             selection.reset();
                         }
 
-                        // Refresh grid view
+                        // Refresh attachment grid items
                         self.browser.collection.fetch({ reset: true });
+                    }).fail(function () {
+                        $folderItem.removeClass('mm-folder-loading');
+                        alert('Failed to assign media to folder.');
                     });
                 }
             });
@@ -297,7 +389,7 @@
         initialize: function () {
             originalAttachmentsBrowser.prototype.initialize.apply(this, arguments);
 
-            // Add folders sidebar
+            // Add folders sidebar instance
             this.foldersSidebar = new media.view.MediaMaestroFolderSidebar({
                 browser: this,
                 controller: this.controller
@@ -305,24 +397,32 @@
 
             this.views.add(this.foldersSidebar);
 
-            // Listen to attachment load / sync events to attach draggable attributes
+            // Listen to grid sync events to attach draggable triggers
             this.listenTo(this.collection, 'sync reset add', this.bindDraggables);
         },
 
         ready: function () {
             originalAttachmentsBrowser.prototype.ready.apply(this, arguments);
 
-            // Position sidebar in DOM and add offset class to main layout
-            this.$el.addClass('has-folders-sidebar');
-            this.$el.prepend(this.foldersSidebar.el);
-            this.foldersSidebar.render();
+            var isStandaloneUploadPage = $('body').hasClass('upload-php');
 
+            if (isStandaloneUploadPage) {
+                // Relocate sidebar to wrapper top-level div for native full-page two-column layout
+                var $wrap = $('.wrap');
+                $wrap.addClass('has-folders-sidebar-wrap');
+                $wrap.prepend(this.foldersSidebar.el);
+            } else {
+                // Nested within modal popup box container
+                this.$el.addClass('has-folders-sidebar');
+                this.$el.prepend(this.foldersSidebar.el);
+            }
+
+            this.foldersSidebar.render();
             this.bindDraggables();
         },
 
         bindDraggables: function () {
             var self = this;
-            // Delay slightly to ensure elements are rendered in DOM
             setTimeout(function () {
                 self.$('.attachments .attachment').each(function () {
                     var $el = $(this);
