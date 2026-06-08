@@ -329,7 +329,7 @@
                 tolerance: 'pointer',
                 drop: function (event, ui) {
                     var folderId = $(this).data('folder-id');
-                    var draggedId = parseInt(ui.helper.data('attachment-id'), 10);
+                    var draggedId = parseInt(ui.draggable.attr('data-id') || ui.draggable.data('id') || ui.helper.data('attachment-id'), 10);
                     var ids = [draggedId];
 
                     // Check if dragged item is part of bulk selection
@@ -371,7 +371,11 @@
                         }
 
                         // Refresh attachment grid items
-                        self.browser.collection.fetch({ reset: true });
+                        if (typeof self.browser.collection._requery === 'function') {
+                            self.browser.collection._requery(true);
+                        } else {
+                            self.browser.collection.props.trigger('change');
+                        }
                     }).fail(function () {
                         $folderItem.removeClass('mm-folder-loading');
                         alert('Failed to assign media to folder.');
