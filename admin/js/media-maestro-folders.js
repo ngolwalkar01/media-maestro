@@ -370,6 +370,12 @@
                     var draggedId = parseInt(ui.draggable.attr('data-id') || ui.draggable.data('id') || ui.helper.data('attachment-id'), 10);
                     var ids = [draggedId];
 
+                    console.log('Media Maestro Folder Drop:', {
+                        folderId: folderId,
+                        draggedId: draggedId,
+                        ids: ids
+                    });
+
                     // Check if dragged item is part of bulk selection
                     var selection = self.controller.state().get('selection');
                     if (selection && selection.length > 0) {
@@ -478,6 +484,10 @@
                         appendTo: 'body',
                         start: function (event, ui) {
                             var id = $(this).attr('data-id');
+                            console.log('Media Maestro Drag Start:', {
+                                id: id,
+                                element: this
+                            });
                             ui.helper.data('attachment-id', id);
                             ui.helper.addClass('ui-draggable-dragging');
                         }
