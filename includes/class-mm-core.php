@@ -412,6 +412,9 @@ class Media_Maestro_Core {
         // Filter media grid query args
         add_filter( 'ajax_query_attachments_args', array( $this, 'filter_grid_attachments_by_folder' ) );
 
+        // Log posts request SQL for folder queries
+        add_filter( 'posts_request', array( $this, 'log_posts_request' ), 10, 2 );
+
         // Handle auto assignment on upload
         add_action( 'add_attachment', array( $this, 'assign_folder_on_upload' ), 9 ); // Run early
 
@@ -422,6 +425,23 @@ class Media_Maestro_Core {
         // Add column to media list view
         add_filter( 'manage_media_columns', array( $this, 'add_folder_column' ) );
         add_action( 'manage_media_custom_column', array( $this, 'render_folder_column' ), 10, 2 );
+    }
+
+    /**
+     * Log posts request SQL to debug folder filter.
+     */
+    public function log_posts_request( $request, $query ) {
+        if ( ! empty( $_REQUEST['query']['mm_folder'] ) ) {
+            $upload_dir = wp_upload_dir();
+            $log_file = $upload_dir['basedir'] . '/media-maestro-debug.log';
+            $log_data = sprintf(
+                "[%s] posts_request SQL: %s\n",
+                date('Y-m-d H:i:s'),
+                $request
+            );
+            file_put_contents( $log_file, $log_data, FILE_APPEND );
+        }
+        return $request;
     }
 
     /**
