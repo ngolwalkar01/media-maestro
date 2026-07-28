@@ -443,14 +443,15 @@ class Media_Maestro_Core {
         );
 
         register_taxonomy( 'mm_folder', 'attachment', array(
-            'hierarchical'      => true,
-            'labels'            => $labels,
-            'show_ui'           => false,
-            'show_in_menu'      => false,
-            'show_in_nav_menus' => false,
-            'show_admin_column' => false,
-            'query_var'         => true,
-            'rewrite'           => false,
+            'hierarchical'          => true,
+            'labels'                => $labels,
+            'show_ui'               => false,
+            'show_in_menu'          => false,
+            'show_in_nav_menus'     => false,
+            'show_admin_column'     => false,
+            'query_var'             => true,
+            'rewrite'               => false,
+            'update_count_callback' => '_update_generic_term_count',
         ) );
     }
 
@@ -458,6 +459,17 @@ class Media_Maestro_Core {
      * Filter media grid query args based on folder selection.
      */
     public function filter_grid_attachments_by_folder( $query ) {
+        $upload_dir = wp_upload_dir();
+        $log_file = $upload_dir['basedir'] . '/media-maestro-debug.log';
+
+        $mm_folder = isset( $_REQUEST['query']['mm_folder'] ) ? $_REQUEST['query']['mm_folder'] : 'not set';
+        $log_data = sprintf(
+            "[%s] filter_grid_attachments_by_folder called. mm_folder: %s\n",
+            date('Y-m-d H:i:s'),
+            wp_json_encode( $mm_folder )
+        );
+        file_put_contents( $log_file, $log_data, FILE_APPEND );
+
         if ( ! empty( $_REQUEST['query']['mm_folder'] ) ) {
             $folder = sanitize_text_field( $_REQUEST['query']['mm_folder'] );
             if ( 'unassigned' === $folder ) {
@@ -485,6 +497,14 @@ class Media_Maestro_Core {
                 );
             }
         }
+
+        $log_data = sprintf(
+            "[%s] filter_grid_attachments_by_folder completed. query output: %s\n",
+            date('Y-m-d H:i:s'),
+            wp_json_encode( $query )
+        );
+        file_put_contents( $log_file, $log_data, FILE_APPEND );
+
         return $query;
     }
 
