@@ -269,7 +269,9 @@ class Media_Maestro_Folder_Controller extends WP_REST_Controller {
         $attachment_ids = $request->get_param( 'attachment_ids' );
         $folder_id      = $request->get_param( 'folder_id' );
 
-        $log_file = dirname( dirname( __DIR__ ) ) . '/debug.log';
+        $upload_dir = wp_upload_dir();
+        $log_file = $upload_dir['basedir'] . '/media-maestro-debug.log';
+
         $log_data = sprintf(
             "[%s] assign_items called. attachment_ids: %s, folder_id: %s\n",
             date('Y-m-d H:i:s'),
