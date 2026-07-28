@@ -18,6 +18,44 @@
 
     var media = wp.media;
 
+    // Extend wp.media.view.Attachment to add data-id attribute to list items in the media grid
+    if (media.view.Attachment) {
+        var originalAttachment = media.view.Attachment;
+        media.view.Attachment = originalAttachment.extend({
+            attributes: function () {
+                var attrs = {};
+                if (originalAttachment.prototype.attributes) {
+                    if (typeof originalAttachment.prototype.attributes === 'function') {
+                        attrs = originalAttachment.prototype.attributes.apply(this, arguments);
+                    } else {
+                        attrs = _.clone(originalAttachment.prototype.attributes);
+                    }
+                }
+                attrs['data-id'] = this.model.get('id');
+                return attrs;
+            }
+        });
+    }
+
+    // Also extend wp.media.view.Attachment.Library just in case it was already compiled/extended
+    if (media.view.Attachment.Library) {
+        var originalAttachmentLibrary = media.view.Attachment.Library;
+        media.view.Attachment.Library = originalAttachmentLibrary.extend({
+            attributes: function () {
+                var attrs = {};
+                if (originalAttachmentLibrary.prototype.attributes) {
+                    if (typeof originalAttachmentLibrary.prototype.attributes === 'function') {
+                        attrs = originalAttachmentLibrary.prototype.attributes.apply(this, arguments);
+                    } else {
+                        attrs = _.clone(originalAttachmentLibrary.prototype.attributes);
+                    }
+                }
+                attrs['data-id'] = this.model.get('id');
+                return attrs;
+            }
+        });
+    }
+
     /**
      * Folder Sidebar View
      */
