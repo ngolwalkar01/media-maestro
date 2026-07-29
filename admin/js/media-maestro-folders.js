@@ -72,7 +72,9 @@
             'input .mm-folder-search-input': 'onSearchFolders',
             'click .mm-folder-item': 'selectFolder',
             'click .bulk-select-btn': 'toggleBulkSelect',
-            'click .mm-folder-checkbox': 'onCheckboxClick'
+            'click .mm-folder-checkbox': 'onCheckboxClick',
+            'click .sort-btn': 'toggleSortDropdown',
+            'click .mm-sort-dropdown li': 'changeSortOrder'
         },
 
         initialize: function (options) {
@@ -83,6 +85,7 @@
             this.counts = { unassigned: 0, all: 0 };
             this.isCollapsed = false;
             this.isBulkSelectMode = false;
+            this.sortMode = 'custom'; // default
 
             // Fetch initial folders list from server
             this.fetchFolders();
@@ -104,6 +107,7 @@
                     self.folders = response.folders;
                     self.counts.unassigned = response.unassigned;
                     self.counts.all = response.all;
+                    self.sortMode = response.sort_mode || 'custom';
                     self.render();
                 }
             });
@@ -127,8 +131,22 @@
             html += '<div class="mm-folders-actions-section">';
             html += '  <div class="mm-action-row-1">';
             html += '    <button type="button" class="button button-primary mm-btn-add-folder">+ New Folder</button>';
-            html += '    <div class="mm-action-group-right">';
-            html += '      <button type="button" class="button mm-action-small-btn sort-btn" title="Sort Folders (PRO)" disabled><span class="mm-pro-badge">PRO</span>&#8645;</button>';
+            html += '    <div class="mm-action-group-right" style="position: relative;">';
+            html += '      <button type="button" class="button mm-action-small-btn sort-btn" title="Sort Folders">&#8645;</button>';
+            
+            // Sort Dropdown Menu
+            var sortCustomActive = (this.sortMode === 'custom') ? ' active' : '';
+            var sortAscActive = (this.sortMode === 'asc') ? ' active' : '';
+            var sortDescActive = (this.sortMode === 'desc') ? ' active' : '';
+
+            html += '      <div class="mm-sort-dropdown" style="display: none;">';
+            html += '        <ul>';
+            html += '          <li data-sort="custom" class="' + sortCustomActive + '"><span class="dashicons dashicons-menu-alt"></span> Custom Order</li>';
+            html += '          <li data-sort="asc" class="' + sortAscActive + '"><span class="dashicons dashicons-editor-indent"></span> Name (A-Z)</li>';
+            html += '          <li data-sort="desc" class="' + sortDescActive + '"><span class="dashicons dashicons-editor-indent"></span> Name (Z-A)</li>';
+            html += '        </ul>';
+            html += '      </div>';
+
             html += '      <button type="button" class="button mm-action-small-btn clear-btn" title="Clear Filter">&times;</button>';
             html += '      <button type="button" class="button mm-action-small-btn toggle-btn" title="Toggle Folder List">&#8597;</button>';
             html += '    </div>';
@@ -191,25 +209,33 @@
             // Custom Folders Header Label
             html += '  <li class="mm-folder-section-heading">FOLDERS</li>';
 
-            // User Custom Folders
+            // User Custom Folders Wrapper
+            html += '  <li class="mm-custom-folders-wrapper" style="padding:0; margin:0; list-style:none;">';
+            html += '    <ul class="mm-custom-folders-list" style="padding:0; margin:0; list-style:none;">';
+
             _.each(this.folders, function (folder) {
                 var folderActive = (self.currentFolder == folder.id) ? ' active' : '';
-                html += '  <li class="mm-folder-item' + folderActive + '" data-folder-id="' + folder.id + '">';
+                html += '      <li class="mm-folder-item' + folderActive + '" data-folder-id="' + folder.id + '">';
                 if (self.isBulkSelectMode) {
-                    html += '    <input type="checkbox" class="mm-folder-checkbox" value="' + folder.id + '" />';
+                    html += '        <input type="checkbox" class="mm-folder-checkbox" value="' + folder.id + '" />';
                 }
-                html += '    <span class="mm-folder-icon">&#128194;</span>'; // Folder icon
-                html += '    <span class="mm-folder-name">' + _.escape(folder.name) + '</span>';
-                html += '    <span class="mm-folder-count">' + folder.count + '</span>';
-                html += '  </li>';
+                html += '        <span class="mm-folder-icon">&#128194;</span>'; // Folder icon
+                html += '        <span class="mm-folder-name">' + _.escape(folder.name) + '</span>';
+                html += '        <span class="mm-folder-count">' + folder.count + '</span>';
+                html += '      </li>';
             });
 
+            html += '    </ul>';
+            html += '  </li>';
             html += '</ul>';
 
             this.$el.html(html);
 
             // Bind droppable targets
             this.bindDroppables();
+
+            // Initialize Sortable drag-and-drop
+            this.initSortable();
 
             return this;
         },
@@ -620,6 +646,117 @@
                         alert('Failed to assign media to folder.');
                     });
                 }
+            });
+        },
+
+        toggleSortDropdown: function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var $dropdown = this.$('.mm-sort-dropdown');
+            $dropdown.toggle();
+            
+            if ($dropdown.is(':visible')) {
+                var self = this;
+                $(document).off('click.mm-sort-close').on('click.mm-sort-close', function (event) {
+                    if (!$(event.target).closest('.sort-btn, .mm-sort-dropdown').length) {
+                        self.$('.mm-sort-dropdown').hide();
+                        $(document).off('click.mm-sort-close');
+                    }
+                });
+            }
+        },
+
+        changeSortOrder: function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            var sortMode = $(e.currentTarget).data('sort');
+            this.$('.mm-sort-dropdown').hide();
+            $(document).off('click.mm-sort-close');
+
+            if (this.sortMode === sortMode) {
+                return;
+            }
+
+            this.sortMode = sortMode;
+            
+            var self = this;
+            $.ajax({
+                url: mm_folders_data.api_url + '/sort-order',
+                method: 'POST',
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', mm_folders_data.nonce);
+                },
+                data: {
+                    sort_mode: sortMode
+                }
+            }).done(function () {
+                self.fetchFolders();
+            }).fail(function (xhr) {
+                var error = xhr.responseJSON ? xhr.responseJSON.message : 'Error setting sort order.';
+                alert(error);
+            });
+        },
+
+        initSortable: function () {
+            var self = this;
+            var $list = this.$('.mm-custom-folders-list');
+            if ($list.length === 0) {
+                return;
+            }
+
+            if (this.sortMode === 'custom' && !this.isBulkSelectMode) {
+                $list.sortable({
+                    axis: 'y',
+                    containment: 'parent',
+                    placeholder: 'ui-sortable-placeholder',
+                    update: function (event, ui) {
+                        self.saveCustomOrder();
+                    }
+                });
+                $list.css('cursor', 'grab');
+            } else {
+                if ($list.hasClass('ui-sortable')) {
+                    $list.sortable('destroy');
+                }
+                $list.css('cursor', 'default');
+            }
+        },
+
+        saveCustomOrder: function () {
+            var self = this;
+            var orderedIds = [];
+            this.$('.mm-custom-folders-list .mm-folder-item').each(function () {
+                var id = parseInt($(this).attr('data-folder-id'), 10);
+                if (!isNaN(id)) {
+                    orderedIds.push(id);
+                }
+            });
+
+            $.ajax({
+                url: mm_folders_data.api_url + '/sort-order',
+                method: 'POST',
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', mm_folders_data.nonce);
+                },
+                data: {
+                    sort_mode: 'custom',
+                    folder_ids: orderedIds
+                }
+            }).done(function () {
+                // Update local folders array order
+                var folderMap = _.indexBy(self.folders, 'id');
+                self.folders = _.map(orderedIds, function (id) {
+                    return folderMap[id];
+                });
+                _.each(folderMap, function (folder, id) {
+                    if (!_.contains(orderedIds, folder.id)) {
+                        self.folders.push(folder);
+                    }
+                });
+            }).fail(function (xhr) {
+                var error = xhr.responseJSON ? xhr.responseJSON.message : 'Error saving folder order.';
+                console.error(error);
             });
         }
     });

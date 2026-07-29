@@ -570,3 +570,65 @@
     justify-content: center;
     color: inherit; /* Ensure icon matches parent button text color */
 }
+
+/* Sort dropdown menu styling */
+.mm-sort-dropdown {
+    position: absolute;
+    top: 32px;
+    right: 50px;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    z-index: 99999;
+    min-width: 155px;
+    padding: 6px 0;
+}
+
+.mm-sort-dropdown ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.mm-sort-dropdown li {
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #475569;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.mm-sort-dropdown li:hover {
+    background-color: #f1f5f9;
+    color: #0f172a;
+}
+
+.mm-sort-dropdown li.active {
+    background-color: #e8f0fe;
+    color: #4285f4;
+    font-weight: 600;
+}
+
+.mm-sort-dropdown li .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Custom Sortable Placeholder */
+.ui-sortable-placeholder {
+    border: 1px dashed #4285f4 !important;
+    background-color: #f8fafc !important;
+    visibility: visible !important;
+    height: 36px !important;
+    border-radius: 4px;
+    margin-bottom: 4px;
+}

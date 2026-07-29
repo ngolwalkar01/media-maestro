@@ -90,7 +90,7 @@ class Media_Maestro_Admin {
         $media_view_ver  = file_exists( $media_view_path ) ? filemtime( $media_view_path ) : $this->version;
 
         // Folders organizer script
-        wp_enqueue_script( $this->plugin_name . '-folders', plugin_dir_url( __FILE__ ) . 'js/media-maestro-folders.js', array( 'media-views', 'jquery-ui-draggable', 'jquery-ui-droppable' ), $folders_ver, true );
+        wp_enqueue_script( $this->plugin_name . '-folders', plugin_dir_url( __FILE__ ) . 'js/media-maestro-folders.js', array( 'media-views', 'jquery-ui-draggable', 'jquery-ui-droppable', 'jquery-ui-sortable' ), $folders_ver, true );
         wp_localize_script( $this->plugin_name . '-folders', 'mm_folders_data', array(
             'nonce'   => wp_create_nonce( 'wp_rest' ),
             'api_url' => esc_url_raw( rest_url( 'mm/v1/folders' ) ),

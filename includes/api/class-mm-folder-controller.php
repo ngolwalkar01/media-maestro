@@ -107,6 +107,28 @@ class Media_Maestro_Folder_Controller extends WP_REST_Controller {
                 ),
             ),
         ) );
+
+        register_rest_route( $this->namespace, '/' . $this->rest_base . '/sort-order', array(
+            array(
+                'methods'             => WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'update_sort_order' ),
+                'permission_callback' => array( $this, 'update_sort_order_permissions_check' ),
+                'args'                => array(
+                    'sort_mode' => array(
+                        'type'              => 'string',
+                        'required'          => true,
+                        'sanitize_callback' => 'sanitize_text_field',
+                    ),
+                    'folder_ids' => array(
+                        'type'     => 'array',
+                        'required' => false,
+                        'items'    => array(
+                            'type' => 'integer',
+                        ),
+                    ),
+                ),
+            ),
+        ) );
     }
 
     /**
@@ -167,6 +189,38 @@ class Media_Maestro_Folder_Controller extends WP_REST_Controller {
             );
         }
 
+        // Sort folders based on stored sort mode
+        $sort_mode = get_option( 'mm_folders_sort_mode', 'custom' );
+        if ( 'asc' === $sort_mode ) {
+            usort( $folders, function( $a, $b ) {
+                return strcasecmp( $a['name'], $b['name'] );
+            } );
+        } elseif ( 'desc' === $sort_mode ) {
+            usort( $folders, function( $a, $b ) {
+                return strcasecmp( $b['name'], $a['name'] );
+            } );
+        } else {
+            // 'custom' order
+            $custom_order = get_option( 'mm_folders_custom_order', array() );
+            if ( ! empty( $custom_order ) ) {
+                $order_map = array_flip( $custom_order );
+                usort( $folders, function( $a, $b ) use ( $order_map ) {
+                    $pos_a = isset( $order_map[ $a['id'] ] ) ? $order_map[ $a['id'] ] : 999999;
+                    $pos_b = isset( $order_map[ $b['id'] ] ) ? $order_map[ $b['id'] ] : 999999;
+
+                    if ( $pos_a === $pos_b ) {
+                        return strcasecmp( $a['name'], $b['name'] );
+                    }
+                    return $pos_a - $pos_b;
+                } );
+            } else {
+                // Default custom sort if no saved order yet is alphabetical A-Z
+                usort( $folders, function( $a, $b ) {
+                    return strcasecmp( $a['name'], $b['name'] );
+                } );
+            }
+        }
+
         // Calculate "Unassigned" count
         $unassigned_query = new WP_Query( array(
             'post_type'      => 'attachment',
@@ -189,6 +243,7 @@ class Media_Maestro_Folder_Controller extends WP_REST_Controller {
             'folders'    => $folders,
             'unassigned' => $unassigned_count,
             'all'        => $all_count,
+            'sort_mode'  => $sort_mode,
         ) );
     }
 
@@ -339,6 +394,32 @@ class Media_Maestro_Folder_Controller extends WP_REST_Controller {
      * Check if user has permission to bulk delete folders.
      */
     public function delete_items_permissions_check( $request ) {
+        return current_user_can( 'upload_files' );
+    }
+
+    /**
+     * Update active folders sort order and mode.
+     */
+    public function update_sort_order( $request ) {
+        $sort_mode = $request->get_param( 'sort_mode' );
+        $folder_ids = $request->get_param( 'folder_ids' );
+
+        update_option( 'mm_folders_sort_mode', $sort_mode );
+        if ( 'custom' === $sort_mode && is_array( $folder_ids ) ) {
+            $sanitized_ids = array_map( 'absint', $folder_ids );
+            update_option( 'mm_folders_custom_order', $sanitized_ids );
+        }
+
+        return rest_ensure_response( array(
+            'success' => true,
+            'message' => __( 'Sort order updated successfully.', 'media-maestro' ),
+        ) );
+    }
+
+    /**
+     * Permission check for updating sort order.
+     */
+    public function update_sort_order_permissions_check( $request ) {
         return current_user_can( 'upload_files' );
     }
 }
