@@ -153,7 +153,7 @@
             var deleteDisabledClass = deleteDisabled ? ' disabled' : '';
 
             var bulkText = this.isBulkSelectMode ? 'Cancel Select' : '&#9745; Bulk select';
-            var bulkClass = this.isBulkSelectMode ? ' button-link active' : '';
+            var bulkClass = this.isBulkSelectMode ? ' mm-bulk-select-active' : '';
 
             html += '  <div class="mm-action-row-2">';
             html += '    <button type="button" class="button rename-btn' + renameDisabledClass + '"' + renameDisabledAttr + '>&#9998; Rename</button>';

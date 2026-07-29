@@ -541,3 +541,20 @@
     cursor: pointer;
     vertical-align: middle;
 }
+
+/* Bulk select active button custom styling */
+.mm-action-row-2 .button.bulk-select-btn.mm-bulk-select-active {
+    background-color: #ffffff !important;
+    border-color: #4285f4 !important;
+    color: #4285f4 !important;
+    text-decoration: none !important;
+    box-shadow: none !important;
+}
+
+.mm-action-row-2 .button.bulk-select-btn.mm-bulk-select-active:hover,
+.mm-action-row-2 .button.bulk-select-btn.mm-bulk-select-active:focus {
+    background-color: #f4f8fe !important;
+    border-color: #4285f4 !important;
+    color: #4285f4 !important;
+    text-decoration: none !important;
+}
