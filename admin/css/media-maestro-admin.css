@@ -4,8 +4,8 @@
 @media (min-width: 783px) {
     .upload-php .wrap.has-folders-sidebar-wrap {
         position: relative;
-        padding-left: 340px;
-        /* 320px sidebar + 20px gap */
+        padding-left: 322px;
+        /* 302px sidebar + 20px gap */
         min-height: calc(100vh - 50px);
         box-sizing: border-box;
     }
@@ -14,7 +14,7 @@
         position: absolute;
         top: 0;
         left: 0;
-        width: 320px;
+        width: 302px;
         background: #ffffff;
         border: 1px solid #cbd5e1;
         border-radius: 8px;
@@ -52,7 +52,7 @@
     position: absolute;
     top: 10px;
     left: 10px;
-    width: 300px;
+    width: 302px;
     background: #ffffff;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
@@ -67,7 +67,7 @@
 .attachments-browser.has-folders-sidebar .media-toolbar,
 .attachments-browser.has-folders-sidebar .attachments,
 .attachments-browser.has-folders-sidebar .uploader-inline {
-    left: 320px;
+    left: 322px;
 }
 
 /* 3. Folder Sidebar Inner Design */
@@ -179,16 +179,19 @@
 }
 
 .mm-action-row-2 .button {
-    font-size: 12px;
-    padding: 4px 12px;
+    font-size: 11px;
+    padding: 4px 6px;
     height: auto;
     line-height: 1.2;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 4px;
     background: #ffffff;
     border: 1px solid #cbd5e1;
     color: #475569;
+    flex: 1;
+    box-sizing: border-box;
 }
 
 .mm-action-row-2 .button:hover:not(:disabled) {
@@ -593,7 +596,7 @@
 .mm-sort-dropdown {
     position: absolute;
     top: 32px;
-    right: 50px;
+    right: 0;
     background: #ffffff;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
