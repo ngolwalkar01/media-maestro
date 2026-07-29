@@ -387,6 +387,88 @@
             });
         },
 
+        showConfirmDialog: function (options) {
+            var self = this;
+            
+            // Remove existing modal if any
+            $('.mm-modal-backdrop').remove();
+
+            var modalHtml = 
+                '<div class="mm-modal-backdrop">' +
+                '  <div class="mm-modal-container">' +
+                '    <div class="mm-modal-header">' +
+                '      <h3 class="mm-modal-title">' + _.escape(options.title || 'Confirm Action') + '</h3>' +
+                '      <button class="mm-modal-close">&times;</button>' +
+                '    </div>' +
+                '    <div class="mm-modal-body">' +
+                '      <p class="mm-confirm-message">' + _.escape(options.message) + '</p>' +
+                '      <div class="mm-modal-error-message" style="color: #dc2626; font-size: 12px; margin-top: 5px; display: none;"></div>' +
+                '    </div>' +
+                '    <div class="mm-modal-footer">' +
+                '      <button type="button" class="button mm-modal-btn-cancel">Cancel</button>' +
+                '      <button type="button" class="button mm-modal-btn-delete">' + _.escape(options.submitText || 'Delete') + '</button>' +
+                '    </div>' +
+                '  </div>' +
+                '</div>';
+
+            var $modal = $(modalHtml).appendTo('body');
+
+            // Animate in
+            setTimeout(function () {
+                $modal.addClass('open');
+                $modal.find('.mm-modal-btn-delete').focus();
+            }, 10);
+
+            // Event handlers
+            var closeModal = function () {
+                $modal.removeClass('open');
+                setTimeout(function () {
+                    $modal.remove();
+                }, 300);
+            };
+
+            $modal.find('.mm-modal-close, .mm-modal-btn-cancel').on('click', function (e) {
+                e.preventDefault();
+                closeModal();
+            });
+
+            $modal.on('click', function (e) {
+                if ($(e.target).hasClass('mm-modal-backdrop')) {
+                    closeModal();
+                }
+            });
+
+            var submit = function () {
+                var $error = $modal.find('.mm-modal-error-message');
+                $error.hide().text('');
+                $modal.find('.button').prop('disabled', true);
+                
+                options.onConfirm(function (err) {
+                    if (err) {
+                        $modal.find('.button').prop('disabled', false);
+                        $error.text(err).show();
+                    } else {
+                        closeModal();
+                    }
+                });
+            };
+
+            $modal.find('.mm-modal-btn-delete').on('click', function (e) {
+                e.preventDefault();
+                submit();
+            });
+
+            $modal.on('keydown', function (e) {
+                if (e.which === 13) { // Enter
+                    e.preventDefault();
+                    submit();
+                } else if (e.which === 27) { // Escape
+                    e.preventDefault();
+                    closeModal();
+                }
+            });
+        },
+
         toggleBulkSelect: function (e) {
             e.preventDefault();
             e.stopPropagation();
@@ -499,27 +581,31 @@
                     return;
                 }
 
-                if (!confirm('Are you sure you want to delete the selected ' + selectedIds.length + ' folder(s)? Media items inside will not be deleted.')) {
-                    return;
-                }
-
-                $.ajax({
-                    url: mm_folders_data.api_url + '/bulk-delete',
-                    method: 'POST',
-                    beforeSend: function (xhr) {
-                        xhr.setRequestHeader('X-WP-Nonce', mm_folders_data.nonce);
-                    },
-                    data: {
-                        folder_ids: selectedIds
+                this.showConfirmDialog({
+                    title: 'Delete Selected Folders',
+                    message: 'Are you sure you want to delete the selected ' + selectedIds.length + ' folder(s)? Media items inside will not be deleted.',
+                    submitText: 'Delete',
+                    onConfirm: function (callback) {
+                        $.ajax({
+                            url: mm_folders_data.api_url + '/bulk-delete',
+                            method: 'POST',
+                            beforeSend: function (xhr) {
+                                xhr.setRequestHeader('X-WP-Nonce', mm_folders_data.nonce);
+                            },
+                            data: {
+                                folder_ids: selectedIds
+                            }
+                        }).done(function () {
+                            self.isBulkSelectMode = false;
+                            self.currentFolder = '';
+                            self.browser.collection.props.set({ mm_folder: '' });
+                            self.fetchFolders();
+                            callback();
+                        }).fail(function (xhr) {
+                            var error = xhr.responseJSON ? xhr.responseJSON.message : 'Error deleting folders.';
+                            callback(error);
+                        });
                     }
-                }).done(function () {
-                    self.isBulkSelectMode = false;
-                    self.currentFolder = '';
-                    self.browser.collection.props.set({ mm_folder: '' });
-                    self.fetchFolders();
-                }).fail(function (xhr) {
-                    var error = xhr.responseJSON ? xhr.responseJSON.message : 'Error deleting folders.';
-                    alert(error);
                 });
 
                 return;
@@ -530,23 +616,27 @@
                 return;
             }
 
-            if (!confirm('Are you sure you want to delete this folder? Media items inside will not be deleted.')) {
-                return;
-            }
-
-            $.ajax({
-                url: mm_folders_data.api_url + '/' + folderId,
-                method: 'DELETE',
-                beforeSend: function (xhr) {
-                    xhr.setRequestHeader('X-WP-Nonce', mm_folders_data.nonce);
+            this.showConfirmDialog({
+                title: 'Delete Folder',
+                message: 'Are you sure you want to delete this folder? Media items inside will not be deleted.',
+                submitText: 'Delete',
+                onConfirm: function (callback) {
+                    $.ajax({
+                        url: mm_folders_data.api_url + '/' + folderId,
+                        method: 'DELETE',
+                        beforeSend: function (xhr) {
+                            xhr.setRequestHeader('X-WP-Nonce', mm_folders_data.nonce);
+                        }
+                    }).done(function () {
+                        self.currentFolder = '';
+                        self.browser.collection.props.set({ mm_folder: '' });
+                        self.fetchFolders();
+                        callback();
+                    }).fail(function (xhr) {
+                        var error = xhr.responseJSON ? xhr.responseJSON.message : 'Error deleting folder.';
+                        callback(error);
+                    });
                 }
-            }).done(function () {
-                self.currentFolder = '';
-                self.browser.collection.props.set({ mm_folder: '' });
-                self.fetchFolders();
-            }).fail(function (xhr) {
-                var error = xhr.responseJSON ? xhr.responseJSON.message : 'Error deleting folder.';
-                alert(error);
             });
         },
 

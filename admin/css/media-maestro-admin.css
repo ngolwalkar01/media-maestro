@@ -755,3 +755,34 @@
     align-items: center !important;
     justify-content: center;
 }
+
+/* Confirm Dialog Specific Styles */
+.mm-confirm-message {
+    font-size: 14px;
+    color: #475569;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.mm-modal-btn-delete.button {
+    background-color: #dc2626 !important;
+    border-color: #dc2626 !important;
+    color: #ffffff !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    height: 32px !important;
+    line-height: 30px !important;
+    padding: 0 16px !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+}
+
+.mm-modal-btn-delete.button:hover {
+    background-color: #b91c1c !important;
+    border-color: #b91c1c !important;
+    color: #ffffff !important;
+}
+
+.mm-modal-btn-delete.button:focus {
+    box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.3) !important;
+}
