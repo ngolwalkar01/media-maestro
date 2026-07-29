@@ -152,12 +152,12 @@
             var deleteDisabledAttr = deleteDisabled ? ' disabled' : '';
             var deleteDisabledClass = deleteDisabled ? ' disabled' : '';
 
-            var bulkText = this.isBulkSelectMode ? 'Cancel Select' : '&#9745; Bulk select';
+            var bulkText = this.isBulkSelectMode ? '<span class="dashicons dashicons-no-alt"></span> Cancel Select' : '<span class="dashicons dashicons-yes-alt"></span> Bulk select';
             var bulkClass = this.isBulkSelectMode ? ' mm-bulk-select-active' : '';
 
             html += '  <div class="mm-action-row-2">';
-            html += '    <button type="button" class="button rename-btn' + renameDisabledClass + '"' + renameDisabledAttr + '>&#9998; Rename</button>';
-            html += '    <button type="button" class="button delete-btn' + deleteDisabledClass + '"' + deleteDisabledAttr + '>&#128465; Delete</button>';
+            html += '    <button type="button" class="button rename-btn' + renameDisabledClass + '"' + renameDisabledAttr + '><span class="dashicons dashicons-edit"></span> Rename</button>';
+            html += '    <button type="button" class="button delete-btn' + deleteDisabledClass + '"' + deleteDisabledAttr + '><span class="dashicons dashicons-trash"></span> Delete</button>';
             html += '    <button type="button" class="button bulk-select-btn' + bulkClass + '">' + bulkText + '</button>';
             html += '  </div>';
             html += '</div>';

@@ -558,3 +558,15 @@
     color: #4285f4 !important;
     text-decoration: none !important;
 }
+
+/* Button Dashicons spacing and sizing */
+.mm-action-row-2 .button .dashicons {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: inherit; /* Ensure icon matches parent button text color */
+}
