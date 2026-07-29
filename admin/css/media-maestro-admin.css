@@ -650,3 +650,105 @@
     border-radius: 4px;
     margin-bottom: 4px;
 }
+
+/* Transition rules for sidebar layout changes */
+.upload-php .wrap.has-folders-sidebar-wrap {
+    transition: padding-left 0.2s ease-in-out;
+}
+
+.upload-php .wrap.has-folders-sidebar-wrap .mm-folders-sidebar {
+    transition: width 0.2s ease-in-out, padding 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+.attachments-browser.has-folders-sidebar .media-toolbar,
+.attachments-browser.has-folders-sidebar .attachments,
+.attachments-browser.has-folders-sidebar .uploader-inline {
+    transition: left 0.2s ease-in-out;
+}
+
+.attachments-browser.has-folders-sidebar .mm-folders-sidebar {
+    transition: width 0.2s ease-in-out, padding 0.2s ease-in-out, border-color 0.2s ease-in-out, top 0.2s ease-in-out, left 0.2s ease-in-out;
+}
+
+/* Sidebar Collapsed State overrides */
+.upload-php .wrap.has-folders-sidebar-wrap.mm-sidebar-collapsed {
+    padding-left: 64px !important;
+}
+
+.upload-php .wrap.has-folders-sidebar-wrap.mm-sidebar-collapsed .mm-folders-sidebar {
+    width: 44px !important;
+    padding: 8px !important;
+    overflow: hidden !important;
+}
+
+.attachments-browser.has-folders-sidebar.mm-sidebar-collapsed .media-toolbar,
+.attachments-browser.has-folders-sidebar.mm-sidebar-collapsed .attachments,
+.attachments-browser.has-folders-sidebar.mm-sidebar-collapsed .uploader-inline {
+    left: 64px !important;
+}
+
+.attachments-browser.has-folders-sidebar.mm-sidebar-collapsed .mm-folders-sidebar {
+    width: 44px !important;
+    padding: 8px !important;
+    overflow: hidden !important;
+    top: 10px !important;
+    left: 10px !important;
+}
+
+/* Collapsed content visibility */
+.mm-folders-sidebar.mm-collapsed .mm-folders-title,
+.mm-folders-sidebar.mm-collapsed .mm-btn-settings,
+.mm-folders-sidebar.mm-collapsed .mm-folders-actions-section,
+.mm-folders-sidebar.mm-collapsed .mm-folders-search-section,
+.mm-folders-sidebar.mm-collapsed .mm-folders-list {
+    display: none !important;
+}
+
+.mm-folders-sidebar.mm-collapsed .mm-folders-header {
+    margin-bottom: 0 !important;
+    justify-content: center !important;
+}
+
+/* Toggle Button Styling */
+.mm-sidebar-toggle-btn {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #475569 !important;
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    border-radius: 6px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    margin-right: 8px !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease !important;
+}
+
+.mm-folders-sidebar.mm-collapsed .mm-sidebar-toggle-btn {
+    margin-right: 0 !important;
+}
+
+.mm-sidebar-toggle-btn:hover {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+}
+
+.mm-sidebar-toggle-btn:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2) !important;
+}
+
+.mm-sidebar-toggle-btn .dashicons {
+    font-size: 18px !important;
+    width: 18px !important;
+    height: 18px !important;
+    line-height: 1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center;
+}

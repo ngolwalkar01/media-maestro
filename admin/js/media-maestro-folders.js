@@ -72,7 +72,8 @@
             'click .bulk-select-btn': 'toggleBulkSelect',
             'click .mm-folder-checkbox': 'onCheckboxClick',
             'click .sort-btn': 'toggleSortDropdown',
-            'click .mm-sort-dropdown li': 'changeSortOrder'
+            'click .mm-sort-dropdown li': 'changeSortOrder',
+            'click .mm-sidebar-toggle-btn': 'toggleSidebarVisibility'
         },
 
         initialize: function (options) {
@@ -84,6 +85,7 @@
             this.isCollapsed = false;
             this.isBulkSelectMode = false;
             this.sortMode = 'custom'; // default
+            this.sidebarCollapsed = localStorage.getItem('mm_sidebar_collapsed') === 'true';
 
             // Fetch initial folders list from server
             this.fetchFolders();
@@ -119,8 +121,22 @@
             var self = this;
             var html = '';
 
+            // Apply collapsed classes dynamically
+            var isStandaloneUploadPage = $('body').hasClass('upload-php');
+            var $parent = isStandaloneUploadPage ? $('.wrap') : this.browser.$el;
+            
+            if (this.sidebarCollapsed) {
+                this.$el.addClass('mm-collapsed');
+                $parent.addClass('mm-sidebar-collapsed');
+            } else {
+                this.$el.removeClass('mm-collapsed');
+                $parent.removeClass('mm-sidebar-collapsed');
+            }
+
             // 1. Header Row
             html += '<div class="mm-folders-header">';
+            var arrowIcon = this.sidebarCollapsed ? 'dashicons-arrow-right-alt2' : 'dashicons-arrow-left-alt2';
+            html += '  <button type="button" class="button mm-sidebar-toggle-btn" title="Toggle Sidebar"><span class="dashicons ' + arrowIcon + '"></span></button>';
             html += '  <span class="mm-folders-title">Organize Media Library</span>';
             html += '  <button type="button" class="mm-btn-settings" title="Settings">&#9881;</button>';
             html += '</div>';
@@ -753,6 +769,14 @@
                 var error = xhr.responseJSON ? xhr.responseJSON.message : 'Error saving folder order.';
                 console.error(error);
             });
+        },
+
+        toggleSidebarVisibility: function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.sidebarCollapsed = !this.sidebarCollapsed;
+            localStorage.setItem('mm_sidebar_collapsed', this.sidebarCollapsed ? 'true' : 'false');
+            this.render();
         }
     });
 
