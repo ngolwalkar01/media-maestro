@@ -177,7 +177,7 @@
 
             // 3. Folder Search Section
             html += '<div class="mm-folders-search-section">';
-            html += '  <span class="mm-search-icon">&#128269;</span>';
+            html += '  <span class="dashicons dashicons-search mm-search-icon"></span>';
             html += '  <input type="search" class="mm-folder-search-input" placeholder="Find folder..." />';
             html += '</div>';
 
