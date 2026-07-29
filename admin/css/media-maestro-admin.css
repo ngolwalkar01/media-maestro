@@ -4,11 +4,12 @@
 @media (min-width: 783px) {
     .upload-php .wrap.has-folders-sidebar-wrap {
         position: relative;
-        padding-left: 340px; /* 320px sidebar + 20px gap */
+        padding-left: 340px;
+        /* 320px sidebar + 20px gap */
         min-height: calc(100vh - 50px);
         box-sizing: border-box;
     }
-    
+
     .upload-php .wrap.has-folders-sidebar-wrap .mm-folders-sidebar {
         position: absolute;
         top: 0;
@@ -28,6 +29,7 @@
     .upload-php .wrap.has-folders-sidebar-wrap {
         padding-left: 0;
     }
+
     .upload-php .wrap.has-folders-sidebar-wrap .mm-folders-sidebar {
         position: relative;
         width: 100%;
@@ -117,7 +119,7 @@
     color: #ffffff;
     border-radius: 4px;
     font-weight: 500;
-    padding: 6px 12px;
+    padding: 6px 32px;
     line-height: 1;
     height: auto;
 }
@@ -173,7 +175,7 @@
 
 .mm-action-row-2 .button {
     font-size: 12px;
-    padding: 4px 8px;
+    padding: 4px 12px;
     height: auto;
     line-height: 1.2;
     display: flex;
@@ -328,7 +330,7 @@
     z-index: 99999 !important;
     border: 2px solid #4285f4 !important;
     border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
 /* Droppable Hover */
@@ -358,7 +360,9 @@
 }
 
 @keyframes mm-spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Existing AI integration components */
@@ -408,8 +412,10 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(15, 23, 42, 0.6); /* Sleek slate dark background */
-    backdrop-filter: blur(4px); /* Modern blur effect */
+    background: rgba(15, 23, 42, 0.6);
+    /* Sleek slate dark background */
+    backdrop-filter: blur(4px);
+    /* Modern blur effect */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -568,7 +574,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: inherit; /* Ensure icon matches parent button text color */
+    color: inherit;
+    /* Ensure icon matches parent button text color */
 }
 
 /* Sort dropdown menu styling */
