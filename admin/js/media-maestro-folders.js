@@ -67,8 +67,6 @@
             'click .rename-btn': 'renameFolder',
             'click .delete-btn': 'deleteFolder',
             'click .mm-btn-settings': 'openSettings',
-            'click .clear-btn': 'clearFilter',
-            'click .toggle-btn': 'toggleCollapse',
             'input .mm-folder-search-input': 'onSearchFolders',
             'click .mm-folder-item': 'selectFolder',
             'click .bulk-select-btn': 'toggleBulkSelect',
@@ -146,9 +144,6 @@
             html += '          <li data-sort="desc" class="' + sortDescActive + '"><span class="dashicons dashicons-editor-indent"></span> Name (Z-A)</li>';
             html += '        </ul>';
             html += '      </div>';
-
-            html += '      <button type="button" class="button mm-action-small-btn clear-btn" title="Clear Filter">&times;</button>';
-            html += '      <button type="button" class="button mm-action-small-btn toggle-btn" title="Toggle Folder List">&#8597;</button>';
             html += '    </div>';
             html += '  </div>';
 
