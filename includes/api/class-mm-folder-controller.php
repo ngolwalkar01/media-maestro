@@ -269,39 +269,13 @@ class Media_Maestro_Folder_Controller extends WP_REST_Controller {
         $attachment_ids = $request->get_param( 'attachment_ids' );
         $folder_id      = $request->get_param( 'folder_id' );
 
-        $upload_dir = wp_upload_dir();
-        $log_file = $upload_dir['basedir'] . '/media-maestro-debug.log';
-
-        $log_data = sprintf(
-            "[%s] assign_items called. attachment_ids: %s, folder_id: %s\n",
-            date('Y-m-d H:i:s'),
-            wp_json_encode( $attachment_ids ),
-            wp_json_encode( $folder_id )
-        );
-        file_put_contents( $log_file, $log_data, FILE_APPEND );
-
         $folder_val = null;
         if ( 'unassigned' !== $folder_id && '0' !== $folder_id && ! empty( $folder_id ) ) {
             $folder_val = absint( $folder_id );
         }
-        
-        $log_data = sprintf(
-            "[%s] folder_val resolved to: %s\n",
-            date('Y-m-d H:i:s'),
-            wp_json_encode( $folder_val )
-        );
-        file_put_contents( $log_file, $log_data, FILE_APPEND );
 
         foreach ( $attachment_ids as $id ) {
             $post = get_post( $id );
-            $post_type = $post ? $post->post_type : 'null';
-            $log_data = sprintf(
-                "[%s] Processing attachment ID: %s, Post type: %s\n",
-                date('Y-m-d H:i:s'),
-                $id,
-                $post_type
-            );
-            file_put_contents( $log_file, $log_data, FILE_APPEND );
 
             if ( ! $post || 'attachment' !== $post->post_type ) {
                 continue;
@@ -309,25 +283,11 @@ class Media_Maestro_Folder_Controller extends WP_REST_Controller {
 
             if ( empty( $folder_val ) ) {
                 // Clear terms
-                $res = wp_set_object_terms( $id, array(), 'mm_folder' );
-                $log_data = sprintf(
-                    "[%s] Cleared terms for ID %s. Result: %s\n",
-                    date('Y-m-d H:i:s'),
-                    $id,
-                    wp_json_encode( $res )
-                );
+                wp_set_object_terms( $id, array(), 'mm_folder' );
             } else {
                 // Set term (replace old ones since attachments can only be in one folder at a time for this structure)
-                $res = wp_set_object_terms( $id, array( $folder_val ), 'mm_folder', false );
-                $log_data = sprintf(
-                    "[%s] Set term %s for ID %s. Result: %s\n",
-                    date('Y-m-d H:i:s'),
-                    $folder_val,
-                    $id,
-                    wp_json_encode( $res )
-                );
+                wp_set_object_terms( $id, array( $folder_val ), 'mm_folder', false );
             }
-            file_put_contents( $log_file, $log_data, FILE_APPEND );
         }
 
         // Return the updated folders counts
