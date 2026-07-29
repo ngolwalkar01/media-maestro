@@ -532,3 +532,12 @@
     background-color: #135e96;
     border-color: #135e96;
 }
+
+/* Checkbox alignment in folders list */
+.mm-folder-checkbox {
+    margin-right: 8px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    cursor: pointer;
+    vertical-align: middle;
+}

@@ -70,6 +70,23 @@ class Media_Maestro_Folder_Controller extends WP_REST_Controller {
             ),
         ) );
 
+        register_rest_route( $this->namespace, '/' . $this->rest_base . '/bulk-delete', array(
+            array(
+                'methods'             => WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'bulk_delete_items' ),
+                'permission_callback' => array( $this, 'delete_items_permissions_check' ),
+                'args'                => array(
+                    'folder_ids' => array(
+                        'type'     => 'array',
+                        'required' => true,
+                        'items'    => array(
+                            'type' => 'integer',
+                        ),
+                    ),
+                ),
+            ),
+        ) );
+
         register_rest_route( $this->namespace, '/' . $this->rest_base . '/assign', array(
             array(
                 'methods'             => WP_REST_Server::CREATABLE,
@@ -292,5 +309,36 @@ class Media_Maestro_Folder_Controller extends WP_REST_Controller {
 
         // Return the updated folders counts
         return $this->get_items( $request );
+    }
+
+    /**
+     * Bulk delete folder terms.
+     */
+    public function bulk_delete_items( $request ) {
+        $folder_ids = $request->get_param( 'folder_ids' );
+        $deleted = 0;
+
+        foreach ( $folder_ids as $id ) {
+            $term_id = absint( $id );
+            $term = get_term( $term_id, 'mm_folder' );
+            if ( $term && ! is_wp_error( $term ) ) {
+                $result = wp_delete_term( $term_id, 'mm_folder' );
+                if ( ! is_wp_error( $result ) ) {
+                    $deleted++;
+                }
+            }
+        }
+
+        return rest_ensure_response( array(
+            'success' => true,
+            'message' => sprintf( _n( '%d folder deleted successfully.', '%d folders deleted successfully.', $deleted, 'media-maestro' ), $deleted ),
+        ) );
+    }
+
+    /**
+     * Check if user has permission to bulk delete folders.
+     */
+    public function delete_items_permissions_check( $request ) {
+        return current_user_can( 'upload_files' );
     }
 }

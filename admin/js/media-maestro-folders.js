@@ -70,7 +70,9 @@
             'click .clear-btn': 'clearFilter',
             'click .toggle-btn': 'toggleCollapse',
             'input .mm-folder-search-input': 'onSearchFolders',
-            'click .mm-folder-item': 'selectFolder'
+            'click .mm-folder-item': 'selectFolder',
+            'click .bulk-select-btn': 'toggleBulkSelect',
+            'click .mm-folder-checkbox': 'onCheckboxClick'
         },
 
         initialize: function (options) {
@@ -80,6 +82,7 @@
             this.folders = [];
             this.counts = { unassigned: 0, all: 0 };
             this.isCollapsed = false;
+            this.isBulkSelectMode = false;
 
             // Fetch initial folders list from server
             this.fetchFolders();
@@ -133,13 +136,29 @@
 
             // Row 2: Rename, Delete, Bulk select
             var isCustomFolder = (this.currentFolder !== '' && this.currentFolder !== 'unassigned');
-            var disabledAttr = isCustomFolder ? '' : ' disabled';
-            var disabledClass = isCustomFolder ? '' : ' disabled';
+            var renameDisabled = true;
+            var deleteDisabled = true;
+
+            if (this.isBulkSelectMode) {
+                renameDisabled = true;
+                deleteDisabled = true; 
+            } else {
+                renameDisabled = !isCustomFolder;
+                deleteDisabled = !isCustomFolder;
+            }
+
+            var renameDisabledAttr = renameDisabled ? ' disabled' : '';
+            var renameDisabledClass = renameDisabled ? ' disabled' : '';
+            var deleteDisabledAttr = deleteDisabled ? ' disabled' : '';
+            var deleteDisabledClass = deleteDisabled ? ' disabled' : '';
+
+            var bulkText = this.isBulkSelectMode ? 'Cancel Select' : '&#9745; Bulk select';
+            var bulkClass = this.isBulkSelectMode ? ' button-link active' : '';
 
             html += '  <div class="mm-action-row-2">';
-            html += '    <button type="button" class="button rename-btn' + disabledClass + '"' + disabledAttr + '>&#9998; Rename</button>';
-            html += '    <button type="button" class="button delete-btn' + disabledClass + '"' + disabledAttr + '>&#128465; Delete</button>';
-            html += '    <button type="button" class="button bulk-select-btn">&#9745; Bulk select</button>';
+            html += '    <button type="button" class="button rename-btn' + renameDisabledClass + '"' + renameDisabledAttr + '>&#9998; Rename</button>';
+            html += '    <button type="button" class="button delete-btn' + deleteDisabledClass + '"' + deleteDisabledAttr + '>&#128465; Delete</button>';
+            html += '    <button type="button" class="button bulk-select-btn' + bulkClass + '">' + bulkText + '</button>';
             html += '  </div>';
             html += '</div>';
 
@@ -176,6 +195,9 @@
             _.each(this.folders, function (folder) {
                 var folderActive = (self.currentFolder == folder.id) ? ' active' : '';
                 html += '  <li class="mm-folder-item' + folderActive + '" data-folder-id="' + folder.id + '">';
+                if (self.isBulkSelectMode) {
+                    html += '    <input type="checkbox" class="mm-folder-checkbox" value="' + folder.id + '" />';
+                }
                 html += '    <span class="mm-folder-icon">&#128194;</span>'; // Folder icon
                 html += '    <span class="mm-folder-name">' + _.escape(folder.name) + '</span>';
                 html += '    <span class="mm-folder-count">' + folder.count + '</span>';
@@ -195,6 +217,24 @@
         selectFolder: function (e) {
             var $target = $(e.currentTarget);
             var folderId = $target.data('folder-id');
+
+            if (this.isBulkSelectMode) {
+                if (folderId === '' || folderId === 'unassigned') {
+                    this.isBulkSelectMode = false;
+                    this.render();
+                    
+                    this.currentFolder = folderId;
+                    this.browser.collection.props.set({ mm_folder: folderId });
+                    return;
+                }
+
+                var $checkbox = $target.find('.mm-folder-checkbox');
+                if ($checkbox.length > 0) {
+                    $checkbox.prop('checked', !$checkbox.prop('checked'));
+                    this.updateBulkActionButtons();
+                }
+                return;
+            }
 
             this.currentFolder = folderId;
             this.$('.mm-folder-item').removeClass('active');
@@ -310,6 +350,28 @@
             });
         },
 
+        toggleBulkSelect: function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.isBulkSelectMode = !this.isBulkSelectMode;
+            this.render();
+        },
+
+        onCheckboxClick: function (e) {
+            e.stopPropagation();
+            this.updateBulkActionButtons();
+        },
+
+        updateBulkActionButtons: function () {
+            if (this.isBulkSelectMode) {
+                var checkedCount = this.$('.mm-folder-checkbox:checked').length;
+                this.$('.rename-btn').prop('disabled', true).addClass('disabled');
+                this.$('.delete-btn')
+                    .prop('disabled', checkedCount === 0)
+                    .toggleClass('disabled', checkedCount === 0);
+            }
+        },
+
         createFolder: function (e) {
             e.preventDefault();
             e.stopPropagation();
@@ -389,6 +451,43 @@
             e.stopPropagation();
 
             var self = this;
+
+            if (this.isBulkSelectMode) {
+                var selectedIds = [];
+                this.$('.mm-folder-checkbox:checked').each(function () {
+                    selectedIds.push(parseInt($(this).val(), 10));
+                });
+
+                if (selectedIds.length === 0) {
+                    return;
+                }
+
+                if (!confirm('Are you sure you want to delete the selected ' + selectedIds.length + ' folder(s)? Media items inside will not be deleted.')) {
+                    return;
+                }
+
+                $.ajax({
+                    url: mm_folders_data.api_url + '/bulk-delete',
+                    method: 'POST',
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader('X-WP-Nonce', mm_folders_data.nonce);
+                    },
+                    data: {
+                        folder_ids: selectedIds
+                    }
+                }).done(function () {
+                    self.isBulkSelectMode = false;
+                    self.currentFolder = '';
+                    self.browser.collection.props.set({ mm_folder: '' });
+                    self.fetchFolders();
+                }).fail(function (xhr) {
+                    var error = xhr.responseJSON ? xhr.responseJSON.message : 'Error deleting folders.';
+                    alert(error);
+                });
+
+                return;
+            }
+
             var folderId = this.currentFolder;
             if (folderId === '' || folderId === 'unassigned') {
                 return;
