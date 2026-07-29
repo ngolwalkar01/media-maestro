@@ -121,7 +121,7 @@
 
             // 1. Header Row
             html += '<div class="mm-folders-header">';
-            html += '  <span class="mm-folders-title">Media Library Organizer</span>';
+            html += '  <span class="mm-folders-title">Organize Media Library</span>';
             html += '  <button type="button" class="mm-btn-settings" title="Settings">&#9881;</button>';
             html += '</div>';
 
