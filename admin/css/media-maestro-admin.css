@@ -400,3 +400,135 @@
     font-size: 12px;
     color: #666;
 }
+
+/* 4. Custom Modals */
+.mm-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.6); /* Sleek slate dark background */
+    backdrop-filter: blur(4px); /* Modern blur effect */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999999;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.mm-modal-backdrop.open {
+    opacity: 1;
+}
+
+.mm-modal-container {
+    background: #ffffff;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    transform: scale(0.95);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+.mm-modal-backdrop.open .mm-modal-container {
+    transform: scale(1);
+}
+
+.mm-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.mm-modal-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.mm-modal-close {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.15s ease;
+}
+
+.mm-modal-close:hover {
+    color: #64748b;
+}
+
+.mm-modal-body {
+    padding: 20px;
+}
+
+.mm-modal-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #0f172a;
+    box-sizing: border-box;
+    background: #f8fafc;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mm-modal-input:focus {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+    outline: 2px solid transparent;
+    background: #ffffff;
+}
+
+.mm-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 20px;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+}
+
+.mm-modal-btn-cancel.button {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 500;
+    height: 32px;
+    line-height: 30px;
+    padding: 0 12px;
+}
+
+.mm-modal-btn-cancel.button:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-color: #94a3b8;
+}
+
+.mm-modal-btn-submit.button-primary {
+    background-color: #2271b1;
+    border-color: #2271b1;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 500;
+    height: 32px;
+    line-height: 30px;
+    padding: 0 16px;
+}
+
+.mm-modal-btn-submit.button-primary:hover {
+    background-color: #135e96;
+    border-color: #135e96;
+}

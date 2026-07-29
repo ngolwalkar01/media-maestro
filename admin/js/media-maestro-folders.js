@@ -218,35 +218,126 @@
             }
         },
 
+        showModal: function (options) {
+            var self = this;
+            
+            // Remove existing modal if any
+            $('.mm-modal-backdrop').remove();
+
+            var modalHtml = 
+                '<div class="mm-modal-backdrop">' +
+                '  <div class="mm-modal-container">' +
+                '    <div class="mm-modal-header">' +
+                '      <h3 class="mm-modal-title">' + _.escape(options.title) + '</h3>' +
+                '      <button class="mm-modal-close">&times;</button>' +
+                '    </div>' +
+                '    <div class="mm-modal-body">' +
+                '      <input type="text" id="mm-folder-name-input" class="mm-modal-input" placeholder="' + _.escape(options.placeholder || '') + '" value="' + _.escape(options.value || '') + '" autocomplete="off" />' +
+                '      <div class="mm-modal-error-message" style="color: #dc2626; font-size: 12px; margin-top: 5px; display: none;"></div>' +
+                '    </div>' +
+                '    <div class="mm-modal-footer">' +
+                '      <button type="button" class="button mm-modal-btn-cancel">Cancel</button>' +
+                '      <button type="button" class="button button-primary mm-modal-btn-submit">' + _.escape(options.submitText || 'Submit') + '</button>' +
+                '    </div>' +
+                '  </div>' +
+                '</div>';
+
+            var $modal = $(modalHtml).appendTo('body');
+
+            // Animate in
+            setTimeout(function () {
+                $modal.addClass('open');
+                $modal.find('#mm-folder-name-input').focus().select();
+            }, 10);
+
+            // Event handlers
+            var closeModal = function () {
+                $modal.removeClass('open');
+                setTimeout(function () {
+                    $modal.remove();
+                }, 300);
+            };
+
+            $modal.find('.mm-modal-close, .mm-modal-btn-cancel').on('click', function (e) {
+                e.preventDefault();
+                closeModal();
+            });
+
+            $modal.on('click', function (e) {
+                if ($(e.target).hasClass('mm-modal-backdrop')) {
+                    closeModal();
+                }
+            });
+
+            var submit = function () {
+                var $input = $modal.find('#mm-folder-name-input');
+                var val = $.trim($input.val());
+                var $error = $modal.find('.mm-modal-error-message');
+                $error.hide().text('');
+
+                if (val === '') {
+                    $error.text('Name cannot be empty.').show();
+                    $input.focus();
+                    return;
+                }
+
+                $modal.find('.button').prop('disabled', true);
+                
+                options.onSubmit(val, function (err) {
+                    if (err) {
+                        $modal.find('.button').prop('disabled', false);
+                        $error.text(err).show();
+                        $input.focus();
+                    } else {
+                        closeModal();
+                    }
+                });
+            };
+
+            $modal.find('.mm-modal-btn-submit').on('click', function (e) {
+                e.preventDefault();
+                submit();
+            });
+
+            $modal.find('#mm-folder-name-input').on('keydown', function (e) {
+                if (e.which === 13) { // Enter
+                    e.preventDefault();
+                    submit();
+                } else if (e.which === 27) { // Escape
+                    e.preventDefault();
+                    closeModal();
+                }
+            });
+        },
+
         createFolder: function (e) {
             e.preventDefault();
             e.stopPropagation();
 
             var self = this;
-            var name = prompt('Enter new folder name:');
-            if (!name) {
-                return;
-            }
-            name = $.trim(name);
-            if (name === '') {
-                alert('Folder name cannot be empty.');
-                return;
-            }
 
-            $.ajax({
-                url: mm_folders_data.api_url,
-                method: 'POST',
-                beforeSend: function (xhr) {
-                    xhr.setRequestHeader('X-WP-Nonce', mm_folders_data.nonce);
-                },
-                data: {
-                    name: name
+            this.showModal({
+                title: 'Create New Folder',
+                placeholder: 'Folder Name',
+                submitText: 'Create',
+                onSubmit: function (name, callback) {
+                    $.ajax({
+                        url: mm_folders_data.api_url,
+                        method: 'POST',
+                        beforeSend: function (xhr) {
+                            xhr.setRequestHeader('X-WP-Nonce', mm_folders_data.nonce);
+                        },
+                        data: {
+                            name: name
+                        }
+                    }).done(function () {
+                        self.fetchFolders();
+                        callback();
+                    }).fail(function (xhr) {
+                        var error = xhr.responseJSON ? xhr.responseJSON.message : 'Error creating folder.';
+                        callback(error);
+                    });
                 }
-            }).done(function () {
-                self.fetchFolders();
-            }).fail(function (xhr) {
-                var error = xhr.responseJSON ? xhr.responseJSON.message : 'Error creating folder.';
-                alert(error);
             });
         },
 
@@ -260,31 +351,36 @@
                 return;
             }
 
-            // Find current active name
             var oldName = this.$('.mm-folder-item.active .mm-folder-name').text();
-            var name = prompt('Rename folder to:', oldName);
-            if (!name) {
-                return;
-            }
-            name = $.trim(name);
-            if (name === '' || name === oldName) {
-                return;
-            }
 
-            $.ajax({
-                url: mm_folders_data.api_url + '/' + folderId,
-                method: 'POST',
-                beforeSend: function (xhr) {
-                    xhr.setRequestHeader('X-WP-Nonce', mm_folders_data.nonce);
-                },
-                data: {
-                    name: name
+            this.showModal({
+                title: 'Rename Folder',
+                placeholder: 'Folder Name',
+                value: oldName,
+                submitText: 'Rename',
+                onSubmit: function (name, callback) {
+                    if (name === oldName) {
+                        callback();
+                        return;
+                    }
+
+                    $.ajax({
+                        url: mm_folders_data.api_url + '/' + folderId,
+                        method: 'POST',
+                        beforeSend: function (xhr) {
+                            xhr.setRequestHeader('X-WP-Nonce', mm_folders_data.nonce);
+                        },
+                        data: {
+                            name: name
+                        }
+                    }).done(function () {
+                        self.fetchFolders();
+                        callback();
+                    }).fail(function (xhr) {
+                        var error = xhr.responseJSON ? xhr.responseJSON.message : 'Error renaming folder.';
+                        callback(error);
+                    });
                 }
-            }).done(function () {
-                self.fetchFolders();
-            }).fail(function (xhr) {
-                var error = xhr.responseJSON ? xhr.responseJSON.message : 'Error renaming folder.';
-                alert(error);
             });
         },
 
