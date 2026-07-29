@@ -482,7 +482,7 @@ class Media_Maestro_Core {
         $upload_dir = wp_upload_dir();
         $log_file = $upload_dir['basedir'] . '/media-maestro-debug.log';
 
-        $mm_folder = isset( $_REQUEST['query']['mm_folder'] ) ? $_REQUEST['query']['mm_folder'] : 'not set';
+        $mm_folder = isset( $query['mm_folder'] ) ? $query['mm_folder'] : ( isset( $_REQUEST['query']['mm_folder'] ) ? $_REQUEST['query']['mm_folder'] : 'not set' );
         $log_data = sprintf(
             "[%s] filter_grid_attachments_by_folder called. mm_folder: %s\n",
             date('Y-m-d H:i:s'),
@@ -490,8 +490,16 @@ class Media_Maestro_Core {
         );
         file_put_contents( $log_file, $log_data, FILE_APPEND );
 
-        if ( ! empty( $_REQUEST['query']['mm_folder'] ) ) {
+        // Extract folder parameter and unset it from $query to prevent WP_Query slug filtering conflict
+        $folder = '';
+        if ( isset( $query['mm_folder'] ) ) {
+            $folder = sanitize_text_field( $query['mm_folder'] );
+            unset( $query['mm_folder'] );
+        } elseif ( isset( $_REQUEST['query']['mm_folder'] ) ) {
             $folder = sanitize_text_field( $_REQUEST['query']['mm_folder'] );
+        }
+
+        if ( ! empty( $folder ) ) {
             if ( 'unassigned' === $folder ) {
                 $query['tax_query'] = array(
                     array(
@@ -504,7 +512,7 @@ class Media_Maestro_Core {
                     array(
                         'taxonomy' => 'mm_folder',
                         'field'    => 'term_id',
-                        'terms'    => absint( $folder ),
+                        'terms'    => array( absint( $folder ) ),
                     ),
                 );
             } else {
