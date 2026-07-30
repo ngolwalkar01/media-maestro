@@ -560,8 +560,8 @@ class Media_Maestro_Core {
             return $query_vars;
         }
 
-        if ( ! empty( $_GET['mm_folder_filter'] ) ) {
-            $filter = sanitize_text_field( $_GET['mm_folder_filter'] );
+        if ( ! empty( $_GET['mm_folder_filter'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $filter = sanitize_text_field( wp_unslash( $_GET['mm_folder_filter'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             if ( 'unassigned' === $filter ) {
                 $query_vars['tax_query'] = array(
                     array(
