@@ -5,19 +5,22 @@
  * This file is read by WordPress to generate the plugin information in the plugin
  * administrative area. This file also includes all of the plugin dependencies.
  *
- * @link              https://github.com/ngolwalkar01/media-maestro
+ * @link              https://prozoned.com/mediamaestro/
  * @since             1.0.0
  * @package           Media_Maestro
  *
  * @wordpress-plugin
- * Plugin Name:       Media Maestro
- * Plugin URI:        https://github.com/ngolwalkar01/media-maestro
- * Description:       AI Media Studio for WordPress. Remove backgrounds, style transfer, and regenerate images directly in the Media Library.
+ * Plugin Name:       Media Maestro - AI Image Generator & Editor
+ * Plugin URI:        https://prozoned.com/mediamaestro/
+ * Description:       Media Maestro brings AI-powered image generation, image editing, and media organization directly into the WordPress Media Library.
  * Version:           1.0.0
- * Author:            Media Maestro Team
- * Author URI:        https://github.com/ngolwalkar01/media-maestro
+ * Author:            Prozoned
+ * Author URI:        https://prozoned.com
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
+ * Requires at least: 6.2
+ * Tested up to: 7.0
+ * Requires PHP:      7.4
  * Text Domain:       media-maestro
  * Domain Path:       /languages
  */
