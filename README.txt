@@ -1,6 +1,6 @@
-=== Media Maestro – AI Image Generator & Editor ===
+=== Media Maestro - AI Image Generator & Editor ===
 Contributors: prozoned
-Tags: ai image generator, image editor, media library, openai, image generation, media manager, image ai
+Tags: ai image generator, ai image editor, media library, image generation, media manager
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 7.4
@@ -29,6 +29,8 @@ Whether you're a blogger, designer, marketer, or business owner, Media Maestro h
 ✔ Edit existing images using text prompts
 ✔ Create image variations
 ✔ Save generated images directly into the Media Library
+✔ New image uploads will be analyzed by AI to detect objects, emotions, and categories, making them searchable in the Media Library
+✔ AI generate a highly optimized Alt text, Title, Caption, and Description based on the image content
 ✔ Organize media with virtual folders
 ✔ Create, rename, and delete folders
 ✔ Drag and drop images and videos into folders
