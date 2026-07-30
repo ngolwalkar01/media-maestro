@@ -227,7 +227,7 @@ class Media_Maestro_Folder_Controller extends WP_REST_Controller {
             'post_status'    => 'any',
             'posts_per_page' => -1,
             'fields'         => 'ids',
-            'tax_query'      => array(
+            'tax_query'      => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
                 array(
                     'taxonomy' => 'mm_folder',
                     'operator' => 'NOT EXISTS',
