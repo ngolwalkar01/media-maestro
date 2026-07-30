@@ -344,7 +344,7 @@ class Media_Maestro_Core {
             $jobs = get_posts( array(
                 'post_type'      => 'mm_job',
                 'posts_per_page' => 1,
-                'meta_query'     => array(
+                'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
                     array(
                         'key'   => '_mm_source_id',
                         'value' => $post_id,
