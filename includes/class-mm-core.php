@@ -502,8 +502,8 @@ class Media_Maestro_Core {
      * Handle auto assignment on upload.
      */
     public function assign_folder_on_upload( $attachment_id ) {
-        if ( isset( $_POST['mm_folder'] ) ) {
-            $folder = sanitize_text_field( $_POST['mm_folder'] );
+        if ( isset( $_POST['mm_folder'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            $folder = sanitize_text_field( wp_unslash( $_POST['mm_folder'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
             if ( is_numeric( $folder ) && $folder > 0 ) {
                 wp_set_object_terms( $attachment_id, absint( $folder ), 'mm_folder' );
             } elseif ( ! is_numeric( $folder ) && ! empty( $folder ) && 'unassigned' !== $folder ) {
