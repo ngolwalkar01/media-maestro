@@ -386,6 +386,7 @@ class Media_Maestro_Folder_Controller extends WP_REST_Controller {
 
         return rest_ensure_response( array(
             'success' => true,
+            /* translators: %d: number of folders */
             'message' => sprintf( _n( '%d folder deleted successfully.', '%d folders deleted successfully.', $deleted, 'media-maestro' ), $deleted ),
         ) );
     }
