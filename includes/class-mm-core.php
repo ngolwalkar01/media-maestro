@@ -538,7 +538,7 @@ class Media_Maestro_Core {
                     esc_attr( $term->slug ),
                     selected( $selected, $term->slug, false ),
                     esc_html( $term->name ),
-                    $term->count
+                    absint( $term->count )
                 );
             }
         }
