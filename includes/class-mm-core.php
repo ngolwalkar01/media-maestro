@@ -464,8 +464,8 @@ class Media_Maestro_Core {
         if ( isset( $query['mm_folder'] ) ) {
             $folder = sanitize_text_field( $query['mm_folder'] );
             unset( $query['mm_folder'] );
-        } elseif ( isset( $_REQUEST['query']['mm_folder'] ) ) {
-            $folder = sanitize_text_field( $_REQUEST['query']['mm_folder'] );
+        } elseif ( isset( $_REQUEST['query']['mm_folder'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $folder = sanitize_text_field( $_REQUEST['query']['mm_folder'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         }
 
         if ( ! empty( $folder ) ) {
