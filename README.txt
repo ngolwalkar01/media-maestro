@@ -1,4 +1,4 @@
-=== Media Maestro – AI Image Generator & Editor for WordPress ===
+=== Media Maestro – AI Image Generator & Editor ===
 Contributors: prozoned
 Tags: ai image generator, image editor, media library, openai, image generation, media manager, image ai
 Requires at least: 6.2
