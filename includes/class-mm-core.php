@@ -522,7 +522,7 @@ class Media_Maestro_Core {
         if ( 'attachment' !== $post_type ) {
             return;
         }
-        $selected = isset( $_GET['mm_folder_filter'] ) ? sanitize_text_field( $_GET['mm_folder_filter'] ) : '';
+        $selected = isset( $_GET['mm_folder_filter'] ) ? sanitize_text_field( wp_unslash( $_GET['mm_folder_filter'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $terms = get_terms( array(
             'taxonomy'   => 'mm_folder',
             'hide_empty' => false,
