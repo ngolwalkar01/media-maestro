@@ -563,14 +563,14 @@ class Media_Maestro_Core {
         if ( ! empty( $_GET['mm_folder_filter'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             $filter = sanitize_text_field( wp_unslash( $_GET['mm_folder_filter'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             if ( 'unassigned' === $filter ) {
-                $query_vars['tax_query'] = array(
+                $query_vars['tax_query'] = array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
                     array(
                         'taxonomy' => 'mm_folder',
                         'operator' => 'NOT EXISTS',
                     ),
                 );
             } else {
-                $query_vars['tax_query'] = array(
+                $query_vars['tax_query'] = array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
                     array(
                         'taxonomy' => 'mm_folder',
                         'field'    => 'slug',
