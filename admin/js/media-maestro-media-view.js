@@ -4,15 +4,12 @@
  * Extends the WordPress Media Library modal to add AI Tools.
  */
 (function ($, _) {
-    console.log('Media Maestro Media View Loaded (Fixed)');
 
     var media = wp.media;
 
     if (typeof mm_data === 'undefined') {
-        console.log('Media Maestro: mm_data missing in Media View');
         return;
     }
-    console.log('Media Maestro Media View Data present for ID:', mm_data.attachment_id || 'dynamic');
 
     /**
      * View for the AI Tools Sidebar Section
@@ -27,7 +24,6 @@
         },
 
         initialize: function (options) {
-            console.log('MediaMaestroSidebar initialized');
             media.View.prototype.initialize.apply(this, arguments);
             this.model.on('change', this.render, this);
         },
@@ -58,8 +54,6 @@
                 alert('Please enter a prompt for this operation.');
                 return;
             }
-
-            console.log('Running Job:', op, 'Prompt:', prompt);
 
             this.startJob(op, {
                 prompt: prompt
@@ -149,16 +143,13 @@
             var $settings = this.$('.settings');
             if ($settings.length) {
                 $settings.before(sidebarView.el);
-                console.log('Inserted sidebar before .settings');
             } else {
                 // Fallback to compat or main
                 var $compat = this.$('.compat-attachment-fields');
                 if ($compat.length) {
                     $compat.prepend(sidebarView.el);
-                    console.log('Appended sidebar to .compat-attachment-fields');
                 } else {
                     this.$el.prepend(sidebarView.el); // Prepend to main el to be at top
-                    console.log('Prepended sidebar to main el');
                 }
             }
 
