@@ -126,7 +126,7 @@ class Media_Maestro_Job_Manager {
             case 'mm_source':
                 $source_id = get_post_meta( $post_id, '_mm_source_id', true );
                 if ( $source_id ) {
-                    echo wp_get_attachment_image( $source_id, array( 50, 50 ) );
+                    echo wp_kses_post( wp_get_attachment_image( $source_id, array( 50, 50 ) ) );
                 }
                 break;
             case 'mm_status':

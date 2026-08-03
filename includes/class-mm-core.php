@@ -326,18 +326,30 @@ class Media_Maestro_Core {
         $error = get_post_meta( $post_id, '_mm_ai_tags_error', true );
         
         if ( ! empty( $error ) ) {
-            echo '<div style="color:#ef4444; font-size:11px; margin-top:4px;"><strong>AI Error:</strong> ' . esc_html( $error ) . '</div>';
+            ?>
+            <div style="color:#ef4444; font-size:11px; margin-top:4px;">
+                <strong><?php esc_html_e( 'AI Error:', 'media-maestro' ); ?></strong> <?php echo esc_html( $error ); ?>
+            </div>
+            <?php
         } elseif ( ! empty( $tags ) ) {
             // Explode by comma to style each tag nicely in the UI
             $tag_array = explode( ',', $tags );
-            echo '<div class="mm-ai-tags-container" style="display:flex; flex-wrap:wrap; gap:4px;">';
-            foreach ( $tag_array as $tag ) {
-                $tag_clean = trim( $tag );
-                if ( ! empty( $tag_clean ) ) {
-                    echo '<span style="background:#e5e7eb; color:#374151; font-size:11px; padding:2px 6px; border-radius:4px; border:1px solid #d1d5db;">' . esc_html( $tag_clean ) . '</span>';
+            ?>
+            <div class="mm-ai-tags-container" style="display:flex; flex-wrap:wrap; gap:4px;">
+                <?php
+                foreach ( $tag_array as $tag ) {
+                    $tag_clean = trim( $tag );
+                    if ( ! empty( $tag_clean ) ) {
+                        ?>
+                        <span style="background:#e5e7eb; color:#374151; font-size:11px; padding:2px 6px; border-radius:4px; border:1px solid #d1d5db;">
+                            <?php echo esc_html( $tag_clean ); ?>
+                        </span>
+                        <?php
+                    }
                 }
-            }
-            echo '</div>';
+                ?>
+            </div>
+            <?php
         } else {
             // Check if there is a pending job
             $job_manager = new Media_Maestro_Job_Manager();
@@ -362,9 +374,13 @@ class Media_Maestro_Core {
             ) );
             
             if ( ! empty( $jobs ) ) {
-                echo '<span style="color:#fbbf24; font-size:12px;">&#8987; Tagging in progress...</span>';
+                ?>
+                <span style="color:#fbbf24; font-size:12px;">&#8987; <?php esc_html_e( 'Tagging in progress...', 'media-maestro' ); ?></span>
+                <?php
             } else {
-                echo '<span style="color:#9ca3af; font-size:12px;">No tags</span>';
+                ?>
+                <span style="color:#9ca3af; font-size:12px;"><?php esc_html_e( 'No tags', 'media-maestro' ); ?></span>
+                <?php
             }
         }
     }
@@ -528,21 +544,23 @@ class Media_Maestro_Core {
             'hide_empty' => false,
         ) );
         
-        echo '<select name="mm_folder_filter" id="mm_folder_filter">';
-        echo '<option value="">' . esc_html__( 'All Folders', 'media-maestro' ) . '</option>';
-        echo '<option value="unassigned" ' . selected( $selected, 'unassigned', false ) . '>' . esc_html__( 'Unassigned', 'media-maestro' ) . '</option>';
-        if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) {
-            foreach ( $terms as $term ) {
-                printf(
-                    '<option value="%s" %s>%s (%d)</option>',
-                    esc_attr( $term->slug ),
-                    selected( $selected, $term->slug, false ),
-                    esc_html( $term->name ),
-                    absint( $term->count )
-                );
+        ?>
+        <select name="mm_folder_filter" id="mm_folder_filter">
+            <option value=""><?php esc_html_e( 'All Folders', 'media-maestro' ); ?></option>
+            <option value="unassigned" <?php selected( $selected, 'unassigned' ); ?>><?php esc_html_e( 'Unassigned', 'media-maestro' ); ?></option>
+            <?php
+            if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) {
+                foreach ( $terms as $term ) {
+                    ?>
+                    <option value="<?php echo esc_attr( $term->slug ); ?>" <?php selected( $selected, $term->slug ); ?>>
+                        <?php echo esc_html( $term->name ); ?> (<?php echo absint( $term->count ); ?>)
+                    </option>
+                    <?php
+                }
             }
-        }
-        echo '</select>';
+            ?>
+        </select>
+        <?php
     }
 
     /**

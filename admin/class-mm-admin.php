@@ -252,13 +252,15 @@ class Media_Maestro_Admin {
             'api_url'       => esc_url_raw( rest_url( 'mm/v1/jobs' ) ),
         ) );
 
-        echo '<div id="mm-ai-tools-container" class="mm-ai-tools-container">';
-        echo '<p><strong>' . esc_html__( 'Actions:', 'media-maestro' ) . '</strong></p>';
-        echo '<button type="button" class="button button-secondary" id="mm-btn-remove-bg">' . esc_html__( 'Remove Background', 'media-maestro' ) . '</button>';
-        echo '<button type="button" class="button button-secondary" id="mm-btn-style-transfer">' . esc_html__( 'Style Transfer', 'media-maestro' ) . '</button>';
-        echo '<hr>';
-        echo '<div id="mm-job-status"></div>';
-        echo '</div>';
+        ?>
+        <div id="mm-ai-tools-container" class="mm-ai-tools-container">
+            <p><strong><?php esc_html_e( 'Actions:', 'media-maestro' ); ?></strong></p>
+            <button type="button" class="button button-secondary" id="mm-btn-remove-bg"><?php esc_html_e( 'Remove Background', 'media-maestro' ); ?></button>
+            <button type="button" class="button button-secondary" id="mm-btn-style-transfer"><?php esc_html_e( 'Style Transfer', 'media-maestro' ); ?></button>
+            <hr>
+            <div id="mm-job-status"></div>
+        </div>
+        <?php
     }
 
 }
