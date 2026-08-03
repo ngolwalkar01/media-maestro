@@ -121,7 +121,7 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
             $payload .= "--" . $boundary . "\r\n";
             $payload .= "Content-Disposition: form-data; name=\"" . $name . "\"; filename=\"" . $filename . "\"\r\n";
             $payload .= "Content-Type: " . $mime . "\r\n\r\n";
-            $payload .= file_get_contents( $filepath ) . "\r\n";
+            $payload .= $this->get_local_file_contents( $filepath ) . "\r\n";
         };
 
         $add_file( 'image', $prepared_image_path, wp_basename( $prepared_image_path ), 'image/png' );
@@ -407,7 +407,7 @@ class Media_Maestro_Provider_OpenAI implements Media_Maestro_Provider_Interface 
         }
 
         $type = mime_content_type( $path );
-        $data = file_get_contents( $path );
+        $data = $this->get_local_file_contents( $path );
         $base64 = base64_encode( $data );
         $data_url = 'data:' . $type . ';base64,' . $base64;
 
@@ -515,7 +515,7 @@ Return ONLY a raw JSON object (no markdown formatting, no code blocks) with the 
         }
 
         $type = mime_content_type( $path );
-        $data = file_get_contents( $path );
+        $data = $this->get_local_file_contents( $path );
         $base64 = base64_encode( $data );
         $data_url = 'data:' . $type . ';base64,' . $base64;
 
@@ -627,7 +627,7 @@ Return ONLY a raw JSON object (no markdown formatting, no code blocks) with the 
      */
     private function analyze_image( $path ) {
         $type = mime_content_type( $path );
-        $data = file_get_contents( $path );
+        $data = $this->get_local_file_contents( $path );
         $base64 = base64_encode( $data );
         $data_url = 'data:' . $type . ';base64,' . $base64;
 
@@ -756,7 +756,7 @@ Return ONLY a raw JSON object (no markdown formatting, no code blocks) with the 
             $payload .= "--" . $boundary . "\r\n";
             $payload .= "Content-Disposition: form-data; name=\"" . $name . "\"; filename=\"" . $filename . "\"\r\n";
             $payload .= "Content-Type: " . $mime . "\r\n\r\n";
-            $payload .= file_get_contents( $filepath ) . "\r\n";
+            $payload .= $this->get_local_file_contents( $filepath ) . "\r\n";
         };
 
         $add_file( 'image', $source_path, wp_basename( $source_path ), 'image/png' );
@@ -797,6 +797,29 @@ Return ONLY a raw JSON object (no markdown formatting, no code blocks) with the 
         }
 
         return download_url( $json['data'][0]['url'] );
+    }
+
+    /**
+     * Read local file contents using WP_Filesystem.
+     *
+     * @param string $path File path.
+     * @return string|false File contents or false on failure.
+     */
+    private function get_local_file_contents( $path ) {
+        global $wp_filesystem;
+        if ( empty( $wp_filesystem ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            if ( ! function_exists( 'request_filesystem_credentials' ) ) {
+                require_once ABSPATH . 'wp-admin/includes/template.php';
+            }
+            WP_Filesystem();
+        }
+        
+        if ( $wp_filesystem ) {
+            return $wp_filesystem->get_contents( $path );
+        }
+        
+        return file_exists( $path ) ? file_get_contents( $path ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
     }
 
 }
